@@ -1,0 +1,150 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  CLIENT
+  STAFF
+  HOD
+  ADMIN
+}
+
+model User {
+  id           String    @id @default(uuid())
+  name         String
+  email        String    @unique
+  passwordHash String
+  role         Role
+  employee     Employee?
+  notifications Notification[]
+  createdAt    DateTime  @default(now())
+}
+
+model Client {
+  id           String   @id @default(uuid())
+  name         String
+  contactInfo  String?
+  requirements String?
+  scope        String?
+  timeline     String?
+  priority     String?
+  jobs         Job[]
+  invoices     Invoice[]
+  createdAt    DateTime @default(now())
+}
+
+model Job {
+  id                   String   @id @default(uuid())
+  clientId             String
+  title                String
+  owner                String?
+  dueDate              DateTime?
+  priority             String?
+  status               String   @default("OPEN")
+  clientReviewToken    String?  @unique
+  clientApprovalStatus String   @default("PENDING")
+  clientApprovalComment String?
+  client               Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  tasks                Task[]
+  invoices             Invoice[]
+  createdAt            DateTime @default(now())
+}
+
+model Task {
+  id             String         @id @default(uuid())
+  jobId          String
+  assignedTo     String?
+  description    String
+  status         String         @default("TODO")
+  dueDate        DateTime?
+  readyForReview Boolean        @default(false)
+  hodReviewStatus String        @default("PENDING")
+  hodReviewComment String?
+  job            Job            @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  versions       AssetVersion[]
+  createdAt      DateTime       @default(now())
+}
+
+model AssetVersion {
+  id            String   @id @default(uuid())
+  taskId        String
+  fileUrl       String
+  versionNumber Int
+  uploadedAt    DateTime @default(now())
+  task          Task     @relation(fields: [taskId], references: [id], onDelete: Cascade)
+}
+
+model Employee {
+  id         String         @id @default(uuid())
+  userId     String         @unique
+  department String?
+  joinDate   DateTime?
+  user       User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  attendance Attendance[]
+  leaves     LeaveRequest[]
+}
+
+model Attendance {
+  id         String   @id @default(uuid())
+  employeeId String
+  date       DateTime
+  status     String
+  employee   Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+}
+
+model LeaveRequest {
+  id         String   @id @default(uuid())
+  employeeId String
+  startDate  DateTime
+  endDate    DateTime
+  status     String   @default("PENDING")
+  reason     String?
+  employee   Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+}
+
+model Invoice {
+  id             String   @id @default(uuid())
+  jobId          String
+  clientId       String
+  invoiceNumber  String   @unique
+  amount         Float
+  amountPaid     Float    @default(0)
+  dueDate        DateTime
+  status         String   @default("PENDING")
+  remindersSent  Int      @default(0)
+  lastReminderAt DateTime?
+  notes          String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  job            Job      @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  client         Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
+}
+
+model Notification {
+  id           String   @id @default(uuid())
+  userId       String?
+  audienceRole String?
+  type         String
+  channel      String   @default("IN_APP")
+  title        String
+  message      String
+  isRead       Boolean  @default(false)
+  createdAt    DateTime @default(now())
+  user         User?    @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model AuditLog {
+  id        String   @id @default(uuid())
+  actorId   String?
+  actorRole String?
+  action    String
+  entityType String
+  entityId  String?
+  payload   Json?
+  createdAt DateTime @default(now())
+}

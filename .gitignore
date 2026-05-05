@@ -1,0 +1,14 @@
+.env
+*.env
+*.env.local
+node_modules/
+frontend/node_modules/
+backend/node_modules/
+frontend/.next/
+backend/uploads/
+dist/
+build/
+coverage/
+*.log
+.DS_Store
+Thumbs.db
