@@ -1,0 +1,19 @@
+services:
+  - type: web
+    name: ims-backend
+    runtime: node
+    plan: free
+    region: oregon
+    branch: main
+    rootDir: backend
+    buildCommand: npm install && npx prisma generate --schema=src/prisma/schema.prisma && npx prisma migrate deploy --schema=src/prisma/schema.prisma && node src/prisma/seed.js
+    startCommand: node src/index.js
+    envVars:
+      - key: DATABASE_URL
+        sync: false
+      - key: JWT_SECRET
+        value: thinking-pixel-ims-secret-2026
+      - key: PORT
+        value: "4000"
+      - key: NODE_ENV
+        value: production
