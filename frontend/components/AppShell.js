@@ -1,24 +1,42 @@
 "use client";
-
-import { usePathname } from "next/navigation";
+import { useEffect, useState } from "react";
+import { usePathname, useRouter } from "next/navigation";
 import Sidebar from "./Sidebar";
-import TopBar from "./TopBar";
+import Navbar from "./Navbar";
+import { getStoredUser } from "../lib/auth";
+import { useTheme } from "../lib/theme";
+
+const PUBLIC = ["/login", "/client-review"];
 
 export default function AppShell({ children }) {
   const pathname = usePathname();
-  const isPublicScreen = pathname.startsWith("/login") || pathname.startsWith("/client-review");
+  const router = useRouter();
+  const { t } = useTheme();
+  const [ready, setReady] = useState(false);
+  const isPublic = PUBLIC.some((p) => pathname.startsWith(p));
 
-  if (isPublicScreen) {
-    return <main>{children}</main>;
-  }
+  useEffect(() => {
+    const user = getStoredUser();
+    if (!isPublic && !user) { router.replace("/login"); return; }
+    setReady(true);
+  }, [isPublic, pathname, router]);
+
+  if (isPublic) return <>{children}</>;
+  if (!ready) return (
+    <div style={{ height: "100vh", display: "flex", alignItems: "center", justifyContent: "center", background: t.contentBg }}>
+      <div style={{ fontSize: 13, color: t.text3 }}>Loading…</div>
+    </div>
+  );
 
   return (
-    <div className="app-shell">
+    <div style={{ display: "flex", height: "100vh", overflow: "hidden", background: t.contentBg }}>
       <Sidebar />
-      <section className="app-main">
-        <TopBar />
-        <main className="page-wrap">{children}</main>
-      </section>
+      <div style={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden" }}>
+        <Navbar />
+        <main className="anim-fade" style={{ flex: 1, overflow: "hidden", display: "flex", flexDirection: "column" }}>
+          {children}
+        </main>
+      </div>
     </div>
   );
 }

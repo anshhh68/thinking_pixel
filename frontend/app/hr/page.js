@@ -1,118 +1,242 @@
 "use client";
-
 import { useEffect, useState } from "react";
 import { api } from "../../lib/api";
-import Badge from "../../components/Badge";
+import { useTheme } from "../../lib/theme";
+import { Badge } from "../../components/ui";
 
-const emptyEmployee = { userId: "", department: "", joinDate: "" };
-const emptyAttendance = { employeeId: "", date: "", status: "PRESENT" };
-const emptyLeave = { employeeId: "", startDate: "", endDate: "", reason: "" };
+const EMPTY_EMPLOYEE = { userId: "", department: "", joinDate: "" };
+const EMPTY_ATTENDANCE = { employeeId: "", date: "", status: "PRESENT" };
+const EMPTY_LEAVE = { employeeId: "", startDate: "", endDate: "", reason: "" };
+
+const LEAVE_STATUS_COLOR = {
+  PENDING:  { color: "#F59E0B", soft: "rgba(245,158,11,0.13)" },
+  APPROVED: { color: "#10B981", soft: "rgba(16,185,129,0.13)" },
+  REJECTED: { color: "#F87171", soft: "rgba(248,113,113,0.13)" },
+};
 
 export default function HrPage() {
+  const { t } = useTheme();
+  const [tab, setTab] = useState("employees");
   const [employees, setEmployees] = useState([]);
-  const [employeeForm, setEmployeeForm] = useState(emptyEmployee);
-  const [attendanceForm, setAttendanceForm] = useState(emptyAttendance);
-  const [leaveForm, setLeaveForm] = useState(emptyLeave);
+  const [leaveRequests, setLeaveRequests] = useState([]);
+  const [employeeForm, setEmployeeForm] = useState(EMPTY_EMPLOYEE);
+  const [attendanceForm, setAttendanceForm] = useState(EMPTY_ATTENDANCE);
+  const [leaveForm, setLeaveForm] = useState(EMPTY_LEAVE);
+  const [saving, setSaving] = useState(false);
+  const [msg, setMsg] = useState("");
 
-  const load = async () => {
-    const data = await api("/hr/employees");
-    setEmployees(data);
+  const load = () => Promise.all([
+    api("/hr/employees").then(setEmployees).catch(() => null),
+    api("/hr/leave-requests").then(setLeaveRequests).catch(() => null),
+  ]);
+
+  useEffect(() => { load(); }, []);
+
+  const withMsg = async (fn, successMsg) => {
+    setSaving(true); setMsg("");
+    try { await fn(); setMsg(successMsg); load(); }
+    catch (e) { setMsg(e.message); }
+    finally { setSaving(false); }
   };
 
-  useEffect(() => {
-    load();
-  }, []);
+  const createEmployee = (e) => { e.preventDefault(); withMsg(() => api("/hr/employees", { method: "POST", body: JSON.stringify(employeeForm) }).then(() => setEmployeeForm(EMPTY_EMPLOYEE)), "Employee added."); };
+  const markAttendance = (e) => { e.preventDefault(); withMsg(() => api("/hr/attendance", { method: "POST", body: JSON.stringify(attendanceForm) }).then(() => setAttendanceForm(EMPTY_ATTENDANCE)), "Attendance recorded."); };
+  const requestLeave = (e) => { e.preventDefault(); withMsg(() => api("/hr/leave-requests", { method: "POST", body: JSON.stringify(leaveForm) }).then(() => setLeaveForm(EMPTY_LEAVE)), "Leave request submitted."); };
 
-  const createEmployee = async (e) => {
-    e.preventDefault();
-    await api("/hr/employees", { method: "POST", body: JSON.stringify(employeeForm) });
-    setEmployeeForm(emptyEmployee);
-    load();
-  };
+  const approveLeave = (id) => withMsg(() => api(`/hr/leave-requests/${id}/approve`, { method: "PATCH" }), "Leave approved.");
+  const rejectLeave = (id) => withMsg(() => api(`/hr/leave-requests/${id}/reject`, { method: "PATCH" }), "Leave rejected.");
 
-  const markAttendance = async (e) => {
-    e.preventDefault();
-    await api("/hr/attendance", { method: "POST", body: JSON.stringify(attendanceForm) });
-    setAttendanceForm(emptyAttendance);
+  const inputStyle = {
+    background: t.contentBg, border: `1px solid ${t.border}`, borderRadius: 8,
+    padding: "9px 12px", color: t.text1, fontSize: 13, outline: "none",
+    fontFamily: "inherit", width: "100%", boxSizing: "border-box",
   };
-
-  const requestLeave = async (e) => {
-    e.preventDefault();
-    await api("/hr/leave-requests", { method: "POST", body: JSON.stringify(leaveForm) });
-    setLeaveForm(emptyLeave);
-  };
+  const labelStyle = { fontSize: 11, fontWeight: 600, color: t.text3, textTransform: "uppercase", letterSpacing: "0.05em" };
+  const tabStyle = (active) => ({
+    background: active ? t.accent : "none", border: active ? "none" : `1px solid ${t.border}`,
+    borderRadius: 8, padding: "7px 16px", color: active ? "#fff" : t.text2,
+    fontSize: 13, fontWeight: active ? 600 : 400, cursor: "pointer",
+  });
 
   return (
-    <div style={{ display: "grid", gap: 14 }}>
-      <section className="panel" style={{ padding: 18 }}>
-        <h1 style={{ fontSize: 56 }}>Creative Roster</h1>
-        <p className="text-muted" style={{ marginTop: 6 }}>
-          The collective intelligence and artistic force behind the Digital Atelier.
-        </p>
-      </section>
+    <div className="anim-fade" style={{ padding: 28, overflowY: "auto", height: "100%", display: "flex", flexDirection: "column", gap: 24 }}>
+      <div>
+        <div style={{ fontSize: 22, fontWeight: 700, color: t.text1 }}>HR</div>
+        <div style={{ fontSize: 13, color: t.text2, marginTop: 2 }}>Team management, attendance, and leave</div>
+      </div>
 
-      <section style={{ display: "grid", gridTemplateColumns: "300px 1fr", gap: 14 }}>
-        <div className="panel" style={{ padding: 14, display: "grid", gap: 10, height: "fit-content" }}>
-          <h3 style={{ fontSize: 30 }}>Culture Pulse</h3>
-          <p className="text-muted">Creative energy and alignment indicators.</p>
-          <div style={{ display: "grid", gap: 8 }}>
-            <Badge tone="primary">Creative Energy 85</Badge>
-            <Badge tone="secondary">Team Alignment 92</Badge>
-          </div>
-          <h4 style={{ marginTop: 8 }}>Filter by Discipline</h4>
-          <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
-            <Badge tone="primary">All Creators</Badge>
-            <Badge>Visual Design</Badge>
-            <Badge>Motion</Badge>
-            <Badge>Creative Code</Badge>
-            <Badge>Strategy</Badge>
+      {/* Tabs */}
+      <div style={{ display: "flex", gap: 8 }}>
+        {["employees", "attendance", "leave"].map((tab_key) => (
+          <button key={tab_key} onClick={() => setTab(tab_key)} style={tabStyle(tab === tab_key)}>
+            {tab_key.charAt(0).toUpperCase() + tab_key.slice(1)}
+          </button>
+        ))}
+      </div>
+
+      {msg && (
+        <div style={{ fontSize: 13, color: t.emerald, background: "rgba(16,185,129,0.1)", borderRadius: 7, padding: "8px 12px" }}>
+          {msg}
+        </div>
+      )}
+
+      {/* Employees tab */}
+      {tab === "employees" && (
+        <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
+          {/* Add employee form */}
+          <form onSubmit={createEmployee}
+            style={{ background: t.surfaceBg, border: `1px solid ${t.border}`, borderRadius: 14, padding: 20, display: "flex", flexDirection: "column", gap: 14 }}>
+            <div style={{ fontSize: 14, fontWeight: 600, color: t.text1 }}>Add Employee</div>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 12 }}>
+              <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                <label style={labelStyle}>User ID *</label>
+                <input style={inputStyle} required placeholder="user-id" value={employeeForm.userId}
+                  onChange={(e) => setEmployeeForm({ ...employeeForm, userId: e.target.value })} />
+              </div>
+              <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                <label style={labelStyle}>Department</label>
+                <input style={inputStyle} placeholder="Creative" value={employeeForm.department}
+                  onChange={(e) => setEmployeeForm({ ...employeeForm, department: e.target.value })} />
+              </div>
+              <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                <label style={labelStyle}>Join Date</label>
+                <input style={inputStyle} type="date" value={employeeForm.joinDate}
+                  onChange={(e) => setEmployeeForm({ ...employeeForm, joinDate: e.target.value })} />
+              </div>
+            </div>
+            <div>
+              <button type="submit" disabled={saving}
+                style={{ background: t.accent, border: "none", borderRadius: 8, padding: "9px 20px", color: "#fff", fontSize: 13, fontWeight: 600, cursor: saving ? "not-allowed" : "pointer", opacity: saving ? 0.6 : 1 }}>
+                Add Employee
+              </button>
+            </div>
+          </form>
+
+          {/* Employee list */}
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(240px, 1fr))", gap: 12 }}>
+            {employees.map((emp) => (
+              <div key={emp.id} style={{ background: t.surfaceBg, border: `1px solid ${t.border}`, borderRadius: 12, padding: "16px 18px" }}>
+                <div style={{ fontSize: 14, fontWeight: 600, color: t.text1, marginBottom: 4 }}>{emp.user?.name || emp.userId}</div>
+                {emp.department && <div style={{ fontSize: 12, color: t.accent, marginBottom: 4 }}>{emp.department}</div>}
+                {emp.joinDate && <div style={{ fontSize: 12, color: t.text3 }}>Joined {new Date(emp.joinDate).toLocaleDateString()}</div>}
+              </div>
+            ))}
+            {employees.length === 0 && <div style={{ color: t.text3, fontSize: 13 }}>No employees yet.</div>}
           </div>
         </div>
+      )}
 
-        <div className="card-grid" style={{ gridTemplateColumns: "repeat(3, minmax(180px, 1fr))" }}>
-          {employees.map((e) => (
-            <article key={e.id} className="panel" style={{ padding: 12, display: "grid", gap: 8 }}>
-              <Badge tone="secondary">{e.department || "Creative"}</Badge>
-              <h3 style={{ fontSize: 30 }}>{e.user?.name || e.userId}</h3>
-              <p className="text-muted">Crafting high-fidelity interfaces and campaign outputs.</p>
-              <p className="text-muted" style={{ fontSize: 12 }}>
-                Velocity: 84%
-              </p>
-            </article>
-          ))}
+      {/* Attendance tab */}
+      {tab === "attendance" && (
+        <form onSubmit={markAttendance}
+          style={{ background: t.surfaceBg, border: `1px solid ${t.border}`, borderRadius: 14, padding: 24, display: "flex", flexDirection: "column", gap: 16 }}>
+          <div style={{ fontSize: 14, fontWeight: 600, color: t.text1 }}>Mark Attendance</div>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 12 }}>
+            <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+              <label style={labelStyle}>Employee ID *</label>
+              <input style={inputStyle} required placeholder="emp-id" value={attendanceForm.employeeId}
+                onChange={(e) => setAttendanceForm({ ...attendanceForm, employeeId: e.target.value })} />
+            </div>
+            <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+              <label style={labelStyle}>Date *</label>
+              <input style={inputStyle} type="date" required value={attendanceForm.date}
+                onChange={(e) => setAttendanceForm({ ...attendanceForm, date: e.target.value })} />
+            </div>
+            <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+              <label style={labelStyle}>Status</label>
+              <select style={inputStyle} value={attendanceForm.status}
+                onChange={(e) => setAttendanceForm({ ...attendanceForm, status: e.target.value })}>
+                <option value="PRESENT">Present</option>
+                <option value="ABSENT">Absent</option>
+                <option value="LEAVE">Leave</option>
+              </select>
+            </div>
+          </div>
+          <div>
+            <button type="submit" disabled={saving}
+              style={{ background: t.accent, border: "none", borderRadius: 8, padding: "9px 20px", color: "#fff", fontSize: 13, fontWeight: 600, cursor: saving ? "not-allowed" : "pointer", opacity: saving ? 0.6 : 1 }}>
+              Mark Attendance
+            </button>
+          </div>
+        </form>
+      )}
+
+      {/* Leave tab */}
+      {tab === "leave" && (
+        <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
+          {/* Leave request form */}
+          <form onSubmit={requestLeave}
+            style={{ background: t.surfaceBg, border: `1px solid ${t.border}`, borderRadius: 14, padding: 24, display: "flex", flexDirection: "column", gap: 16 }}>
+            <div style={{ fontSize: 14, fontWeight: 600, color: t.text1 }}>Submit Leave Request</div>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 12 }}>
+              <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                <label style={labelStyle}>Employee ID *</label>
+                <input style={inputStyle} required value={leaveForm.employeeId}
+                  onChange={(e) => setLeaveForm({ ...leaveForm, employeeId: e.target.value })} />
+              </div>
+              <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                <label style={labelStyle}>Start Date *</label>
+                <input style={inputStyle} type="date" required value={leaveForm.startDate}
+                  onChange={(e) => setLeaveForm({ ...leaveForm, startDate: e.target.value })} />
+              </div>
+              <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                <label style={labelStyle}>End Date *</label>
+                <input style={inputStyle} type="date" required value={leaveForm.endDate}
+                  onChange={(e) => setLeaveForm({ ...leaveForm, endDate: e.target.value })} />
+              </div>
+            </div>
+            <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+              <label style={labelStyle}>Reason</label>
+              <textarea style={{ ...inputStyle, resize: "vertical" }} rows={3}
+                placeholder="Reason for leave…" value={leaveForm.reason}
+                onChange={(e) => setLeaveForm({ ...leaveForm, reason: e.target.value })} />
+            </div>
+            <div>
+              <button type="submit" disabled={saving}
+                style={{ background: t.accent, border: "none", borderRadius: 8, padding: "9px 20px", color: "#fff", fontSize: 13, fontWeight: 600, cursor: saving ? "not-allowed" : "pointer", opacity: saving ? 0.6 : 1 }}>
+                Submit Request
+              </button>
+            </div>
+          </form>
+
+          {/* Leave requests list */}
+          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+            <div style={{ fontSize: 14, fontWeight: 600, color: t.text1 }}>Leave Requests</div>
+            {leaveRequests.map((lr) => {
+              const sc = LEAVE_STATUS_COLOR[lr.status] || LEAVE_STATUS_COLOR.PENDING;
+              return (
+                <div key={lr.id} style={{ background: t.surfaceBg, border: `1px solid ${t.border}`, borderRadius: 10, padding: "14px 18px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                  <div>
+                    <div style={{ fontSize: 13, fontWeight: 500, color: t.text1, marginBottom: 4 }}>
+                      {lr.employee?.user?.name || lr.employeeId}
+                    </div>
+                    <div style={{ fontSize: 12, color: t.text2 }}>
+                      {new Date(lr.startDate).toLocaleDateString()} – {new Date(lr.endDate).toLocaleDateString()}
+                    </div>
+                    {lr.reason && <div style={{ fontSize: 12, color: t.text3, marginTop: 2 }}>{lr.reason}</div>}
+                  </div>
+                  <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                    <Badge label={lr.status} color={sc.color} soft={sc.soft} />
+                    {lr.status === "PENDING" && (
+                      <>
+                        <button onClick={() => approveLeave(lr.id)}
+                          style={{ background: "none", border: `1px solid ${t.emerald}`, borderRadius: 7, padding: "5px 12px", fontSize: 12, color: t.emerald, cursor: "pointer" }}>
+                          Approve
+                        </button>
+                        <button onClick={() => rejectLeave(lr.id)}
+                          style={{ background: "none", border: `1px solid ${t.red}`, borderRadius: 7, padding: "5px 12px", fontSize: 12, color: t.red, cursor: "pointer" }}>
+                          Reject
+                        </button>
+                      </>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+            {leaveRequests.length === 0 && <div style={{ color: t.text3, fontSize: 13 }}>No leave requests.</div>}
+          </div>
         </div>
-      </section>
-
-      <section style={{ display: "grid", gridTemplateColumns: "repeat(3, minmax(220px, 1fr))", gap: 14 }}>
-        <form className="panel" onSubmit={createEmployee} style={{ padding: 12, display: "grid", gap: 8 }}>
-          <h3>Add Employee</h3>
-          <input className="field" placeholder="User ID" value={employeeForm.userId} onChange={(e) => setEmployeeForm({ ...employeeForm, userId: e.target.value })} />
-          <input className="field" placeholder="Department" value={employeeForm.department} onChange={(e) => setEmployeeForm({ ...employeeForm, department: e.target.value })} />
-          <input className="field" type="date" value={employeeForm.joinDate} onChange={(e) => setEmployeeForm({ ...employeeForm, joinDate: e.target.value })} />
-          <button className="btn-primary" type="submit">Add Employee</button>
-        </form>
-
-        <form className="panel" onSubmit={markAttendance} style={{ padding: 12, display: "grid", gap: 8 }}>
-          <h3>Attendance</h3>
-          <input className="field" placeholder="Employee ID" value={attendanceForm.employeeId} onChange={(e) => setAttendanceForm({ ...attendanceForm, employeeId: e.target.value })} />
-          <input className="field" type="date" value={attendanceForm.date} onChange={(e) => setAttendanceForm({ ...attendanceForm, date: e.target.value })} />
-          <select className="select" value={attendanceForm.status} onChange={(e) => setAttendanceForm({ ...attendanceForm, status: e.target.value })}>
-            <option>PRESENT</option>
-            <option>ABSENT</option>
-            <option>LEAVE</option>
-          </select>
-          <button className="btn-primary" type="submit">Mark Attendance</button>
-        </form>
-
-        <form className="panel" onSubmit={requestLeave} style={{ padding: 12, display: "grid", gap: 8 }}>
-          <h3>Leave Request</h3>
-          <input className="field" placeholder="Employee ID" value={leaveForm.employeeId} onChange={(e) => setLeaveForm({ ...leaveForm, employeeId: e.target.value })} />
-          <input className="field" type="date" value={leaveForm.startDate} onChange={(e) => setLeaveForm({ ...leaveForm, startDate: e.target.value })} />
-          <input className="field" type="date" value={leaveForm.endDate} onChange={(e) => setLeaveForm({ ...leaveForm, endDate: e.target.value })} />
-          <textarea className="textarea" placeholder="Reason" value={leaveForm.reason} onChange={(e) => setLeaveForm({ ...leaveForm, reason: e.target.value })} />
-          <button className="btn-primary" type="submit">Submit Leave</button>
-        </form>
-      </section>
+      )}
     </div>
   );
 }

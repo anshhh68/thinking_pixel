@@ -1,0 +1,9 @@
+{
+  "name": "thinking-pixel-workspace",
+  "private": true,
+  "version": "1.0.0",
+  "scripts": {
+    "setup": "node scripts/setup.js",
+    "dev": "node scripts/dev-all.js"
+  }
+}
