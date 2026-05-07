@@ -11,7 +11,7 @@
 ---
 
 ## What It Does
-
+ i
 | Module | Features |
 |--------|----------|
 | **Auth** | JWT login, role-based access (12 roles), demo accounts |
