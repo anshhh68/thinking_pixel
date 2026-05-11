@@ -1,17 +1,13 @@
 const express = require("express");
 const multer = require("multer");
-const path = require("path");
 const { PrismaClient } = require("@prisma/client");
 const { authGuard, requireRole } = require("../middleware/auth");
 
 const prisma = new PrismaClient();
 const router = express.Router();
 
-const storage = multer.diskStorage({
-  destination: (_req, _file, cb) => cb(null, path.join(__dirname, "../../uploads")),
-  filename: (_req, file, cb) => cb(null, `${Date.now()}-${file.originalname}`),
-});
-const upload = multer({ storage });
+// Store file buffer in memory, convert to base64 data URL, save in DB (prototype)
+const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 5 * 1024 * 1024 } });
 
 router.use(authGuard);
 
@@ -21,17 +17,15 @@ router.post(
   upload.single("file"),
   async (req, res) => {
     const { taskId } = req.params;
+    const dataUrl = `data:${req.file.mimetype};base64,${req.file.buffer.toString("base64")}`;
+
     const lastVersion = await prisma.assetVersion.findFirst({
       where: { taskId },
       orderBy: { versionNumber: "desc" },
     });
     const versionNumber = (lastVersion?.versionNumber || 0) + 1;
     const created = await prisma.assetVersion.create({
-      data: {
-        taskId,
-        versionNumber,
-        fileUrl: `/uploads/${req.file.filename}`,
-      },
+      data: { taskId, versionNumber, fileUrl: dataUrl },
     });
     res.status(201).json(created);
   }

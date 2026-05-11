@@ -121,7 +121,7 @@ export default function HodApprovalsPage() {
                   style={{ flex: 1, background: t.emerald, border: "none", borderRadius: 8, padding: "10px", color: "#fff", fontSize: 13, fontWeight: 600, cursor: submitting ? "not-allowed" : "pointer", opacity: submitting ? 0.6 : 1 }}>
                   Approve
                 </button>
-                <button onClick={() => decide("REWORK")} disabled={submitting}
+                <button onClick={() => decide("REJECTED")} disabled={submitting}
                   style={{ flex: 1, background: t.red, border: "none", borderRadius: 8, padding: "10px", color: "#fff", fontSize: 13, fontWeight: 600, cursor: submitting ? "not-allowed" : "pointer", opacity: submitting ? 0.6 : 1 }}>
                   Request Rework
                 </button>

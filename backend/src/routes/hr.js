@@ -66,4 +66,21 @@ router.patch("/leave-requests/:id/approve", requireRole("ADMIN", "HOD"), async (
   res.json(updated);
 });
 
+router.patch("/leave-requests/:id/reject", requireRole("ADMIN", "HOD"), async (req, res) => {
+  const { id } = req.params;
+  const updated = await prisma.leaveRequest.update({
+    where: { id },
+    data: { status: "REJECTED" },
+  });
+  await prisma.notification.create({
+    data: {
+      audienceRole: "STAFF",
+      type: "LEAVE_REJECTED",
+      title: "Leave request rejected",
+      message: `Leave request ${id} has been rejected.`,
+    },
+  });
+  res.json(updated);
+});
+
 module.exports = router;

@@ -56,6 +56,11 @@ export default function JobsPage() {
     setReviewLinks((prev) => ({ ...prev, [jobId]: data.reviewUrl }));
   };
 
+  const updateTaskStatus = async (taskId, status) => {
+    await api(`/jobs/tasks/${taskId}/status`, { method: "PATCH", body: JSON.stringify({ status }) });
+    load(page);
+  };
+
   const inputStyle = {
     background: t.contentBg, border: `1px solid ${t.border}`, borderRadius: 8,
     padding: "9px 12px", color: t.text1, fontSize: 13, outline: "none",
@@ -164,7 +169,24 @@ export default function JobsPage() {
                         {job.tasks.map((task) => (
                           <div key={task.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", background: t.contentBg, border: `1px solid ${t.border}`, borderRadius: 8, padding: "8px 12px" }}>
                             <span style={{ fontSize: 13, color: t.text1 }}>{task.description}</span>
-                            <StatusBadge status={task.status} t={t} />
+                            <select
+                              value={task.status}
+                              onChange={(e) => updateTaskStatus(task.id, e.target.value)}
+                              style={{
+                                background: t.contentBg,
+                                border: `1px solid ${t.border}`,
+                                borderRadius: 6,
+                                padding: "4px 8px",
+                                color: t.text2,
+                                fontSize: 12,
+                                cursor: "pointer",
+                                fontFamily: "inherit",
+                              }}
+                            >
+                              <option value="TODO">TODO</option>
+                              <option value="IN_PROGRESS">IN_PROGRESS</option>
+                              <option value="DONE">DONE</option>
+                            </select>
                           </div>
                         ))}
                       </div>
