@@ -16,7 +16,10 @@ export default function CreativePage() {
   const load = () => api("/jobs?paginated=true&page=1&pageSize=50").then((r) => setJobs(r?.items || [])).catch(() => null);
   useEffect(() => { load(); }, []);
 
-  const allTasks = jobs.flatMap((j) => (j.tasks || []).map((t) => ({ ...t, jobTitle: j.title })));
+  const user = (() => { try { return JSON.parse(localStorage.getItem("tp_user") || "{}"); } catch { return {}; } })();
+  const allTasks = jobs
+    .flatMap((j) => (j.tasks || []).map((t) => ({ ...t, jobTitle: j.title })))
+    .filter((task) => user.role !== "STAFF" || task.assignedTo === user.name);
   const selectedTaskObj = allTasks.find((t) => t.id === selectedTask);
 
   const upload = async () => {
@@ -97,7 +100,11 @@ export default function CreativePage() {
               {(selectedTaskObj.versions || []).map((v) => (
                 <div key={v.id} style={{ background: t.contentBg, border: `1px solid ${t.border}`, borderRadius: 8, padding: "10px 14px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                   <Badge label={`v${v.versionNumber}`} color={t.indigo} soft={t.indigoSoft} />
-                  <span style={{ fontSize: 12, color: t.text2, fontFamily: "var(--font-mono),monospace" }}>{v.fileUrl}</span>
+                  {v.fileUrl?.startsWith("data:image/") ? (
+                    <img src={v.fileUrl} alt={`v${v.versionNumber}`} style={{ maxHeight: 48, maxWidth: 120, borderRadius: 4, objectFit: "cover" }} />
+                  ) : (
+                    <a href={v.fileUrl} download target="_blank" rel="noreferrer" style={{ fontSize: 12, color: t.accent }}>Download</a>
+                  )}
                   <span style={{ fontSize: 11, color: t.text3 }}>{new Date(v.uploadedAt).toLocaleDateString()}</span>
                 </div>
               ))}
