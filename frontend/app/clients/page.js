@@ -19,6 +19,10 @@ export default function ClientsPage() {
   const [form, setForm] = useState(EMPTY);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
+  const [editingId, setEditingId] = useState(null);
+  const [confirmDelete, setConfirmDelete] = useState(null);
+
+  const user = (() => { try { return JSON.parse(localStorage.getItem("tp_user") || "{}"); } catch { return {}; } })();
 
   const load = () => api("/clients").then(setClients).catch(() => null);
   useEffect(() => { load(); }, []);
@@ -34,6 +38,28 @@ export default function ClientsPage() {
     } finally {
       setSaving(false);
     }
+  };
+
+  const startEdit = (client) => {
+    setEditingId(client.id);
+    setForm({ name: client.name, contactInfo: client.contactInfo || "", requirements: client.requirements || "", scope: client.scope || "", timeline: client.timeline || "", priority: client.priority || "MEDIUM" });
+    setShowForm(true);
+  };
+
+  const saveEdit = async (e) => {
+    e.preventDefault();
+    setSaving(true); setError("");
+    try {
+      await api(`/clients/${editingId}`, { method: "PUT", body: JSON.stringify(form) });
+      setForm(EMPTY); setShowForm(false); setEditingId(null); load();
+    } catch (err) {
+      setError(err.message);
+    } finally { setSaving(false); }
+  };
+
+  const deleteClient = async (id) => {
+    await api(`/clients/${id}`, { method: "DELETE" });
+    setConfirmDelete(null); load();
   };
 
   const inputStyle = {
@@ -58,9 +84,9 @@ export default function ClientsPage() {
 
       {/* Create form */}
       {showForm && (
-        <form onSubmit={createClient}
+        <form onSubmit={editingId ? saveEdit : createClient}
           style={{ background: t.surfaceBg, border: `1px solid ${t.border}`, borderRadius: 14, padding: 24, display: "flex", flexDirection: "column", gap: 16 }}>
-          <div style={{ fontSize: 14, fontWeight: 600, color: t.text1 }}>New Client</div>
+          <div style={{ fontSize: 14, fontWeight: 600, color: t.text1 }}>{editingId ? "Edit Client" : "New Client"}</div>
 
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 12 }}>
             <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
@@ -103,13 +129,13 @@ export default function ClientsPage() {
           {error && <div style={{ fontSize: 13, color: t.red, background: "rgba(248,113,113,0.1)", borderRadius: 7, padding: "8px 12px" }}>{error}</div>}
 
           <div style={{ display: "flex", justifyContent: "flex-end", gap: 10 }}>
-            <button type="button" onClick={() => { setShowForm(false); setForm(EMPTY); setError(""); }}
+            <button type="button" onClick={() => { setShowForm(false); setForm(EMPTY); setError(""); setEditingId(null); }}
               style={{ background: "none", border: `1px solid ${t.border}`, borderRadius: 8, padding: "9px 18px", color: t.text2, fontSize: 13, cursor: "pointer" }}>
               Cancel
             </button>
             <button type="submit" disabled={saving}
               style={{ background: t.accent, border: "none", borderRadius: 8, padding: "9px 18px", color: "#fff", fontSize: 13, fontWeight: 600, cursor: saving ? "not-allowed" : "pointer", opacity: saving ? 0.6 : 1 }}>
-              {saving ? "Creating…" : "Create Client"}
+              {saving ? "Saving…" : editingId ? "Save Changes" : "Create Client"}
             </button>
           </div>
         </form>
@@ -134,6 +160,31 @@ export default function ClientsPage() {
               {client.timeline && (
                 <div style={{ fontSize: 12, color: t.text3 }}>Timeline: {client.timeline}</div>
               )}
+              <div style={{ display: "flex", gap: 8, marginTop: 12 }}>
+                <button onClick={() => startEdit(client)}
+                  style={{ flex: 1, background: "none", border: `1px solid ${t.border}`, borderRadius: 7, padding: "6px 0", fontSize: 12, color: t.text2, cursor: "pointer" }}>
+                  Edit
+                </button>
+                {user.role === "ADMIN" && (
+                  confirmDelete === client.id ? (
+                    <div style={{ display: "flex", gap: 6, flex: 1 }}>
+                      <button onClick={() => deleteClient(client.id)}
+                        style={{ flex: 1, background: t.red, border: "none", borderRadius: 7, padding: "6px 0", fontSize: 12, color: "#fff", cursor: "pointer" }}>
+                        Confirm
+                      </button>
+                      <button onClick={() => setConfirmDelete(null)}
+                        style={{ flex: 1, background: "none", border: `1px solid ${t.border}`, borderRadius: 7, padding: "6px 0", fontSize: 12, color: t.text2, cursor: "pointer" }}>
+                        Cancel
+                      </button>
+                    </div>
+                  ) : (
+                    <button onClick={() => setConfirmDelete(client.id)}
+                      style={{ flex: 1, background: "none", border: `1px solid ${t.red}40`, borderRadius: 7, padding: "6px 0", fontSize: 12, color: t.red, cursor: "pointer" }}>
+                      Delete
+                    </button>
+                  )
+                )}
+              </div>
               <div style={{ marginTop: 10, fontSize: 12, color: t.text3 }}>
                 {client._count?.jobs ?? 0} job(s)
               </div>

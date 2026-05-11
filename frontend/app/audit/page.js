@@ -15,19 +15,61 @@ export default function AuditPage() {
   const [logs, setLogs] = useState([]);
   const [meta, setMeta] = useState({ page: 1, totalPages: 1, total: 0 });
   const [page, setPage] = useState(1);
+  const [filters, setFilters] = useState({ action: "", entityType: "" });
 
-  const load = (p = page) =>
-    api(`/audit-logs?paginated=true&page=${p}&pageSize=25`)
+  const load = (p = page, f = filters) => {
+    const params = new URLSearchParams({ paginated: "true", page: p, pageSize: 25 });
+    if (f.action) params.set("action", f.action);
+    if (f.entityType) params.set("entityType", f.entityType);
+    return api(`/audit-logs?${params.toString()}`)
       .then((d) => { setLogs(d.items || []); setMeta(d.meta || {}); })
       .catch(() => null);
+  };
 
-  useEffect(() => { load(page); }, [page]);
+  useEffect(() => { load(1, filters); setPage(1); }, [filters]);
+  useEffect(() => { load(page, filters); }, [page]);
+
+  const inputStyle = { background: t.contentBg, border: `1px solid ${t.border}`, borderRadius: 8, padding: "7px 11px", color: t.text1, fontSize: 13, outline: "none", fontFamily: "inherit" };
 
   return (
     <div className="anim-fade" style={{ padding: 28, overflowY: "auto", height: "100%", display: "flex", flexDirection: "column", gap: 20 }}>
       <div>
         <div style={{ fontSize: 22, fontWeight: 700, color: t.text1 }}>Audit Logs</div>
         <div style={{ fontSize: 13, color: t.text2, marginTop: 2 }}>{meta.total || 0} total entries</div>
+      </div>
+
+      <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+        <select value={filters.action} onChange={(e) => setFilters({ ...filters, action: e.target.value })}
+          style={inputStyle}>
+          <option value="">All Actions</option>
+          <option value="CLIENT_CREATED">CLIENT_CREATED</option>
+          <option value="CLIENT_UPDATED">CLIENT_UPDATED</option>
+          <option value="CLIENT_DELETED">CLIENT_DELETED</option>
+          <option value="JOB_CREATED">JOB_CREATED</option>
+          <option value="TASK_CREATED">TASK_CREATED</option>
+          <option value="TASK_MARKED_READY">TASK_MARKED_READY</option>
+          <option value="HOD_DECISION">HOD_DECISION</option>
+          <option value="INVOICE_CREATED">INVOICE_CREATED</option>
+          <option value="PAYMENT_RECORDED">PAYMENT_RECORDED</option>
+          <option value="NOTIFICATION_BROADCAST">NOTIFICATION_BROADCAST</option>
+          <option value="LOGIN">LOGIN</option>
+        </select>
+        <select value={filters.entityType} onChange={(e) => setFilters({ ...filters, entityType: e.target.value })}
+          style={inputStyle}>
+          <option value="">All Entities</option>
+          <option value="Client">Client</option>
+          <option value="Job">Job</option>
+          <option value="Task">Task</option>
+          <option value="Invoice">Invoice</option>
+          <option value="Notification">Notification</option>
+          <option value="User">User</option>
+        </select>
+        {(filters.action || filters.entityType) && (
+          <button onClick={() => setFilters({ action: "", entityType: "" })}
+            style={{ background: "none", border: `1px solid ${t.border}`, borderRadius: 8, padding: "7px 14px", fontSize: 12, color: t.text2, cursor: "pointer" }}>
+            Clear filters
+          </button>
+        )}
       </div>
 
       <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>

@@ -18,6 +18,22 @@ export default function NotificationsPage() {
   const [onlyUnread, setOnlyUnread] = useState(false);
   const [page, setPage] = useState(1);
   const [meta, setMeta] = useState({ page: 1, totalPages: 1, total: 0 });
+  const [showBroadcast, setShowBroadcast] = useState(false);
+  const [bForm, setBForm] = useState({ audienceRole: "STAFF", title: "", message: "", type: "GENERAL" });
+  const [sending, setSending] = useState(false);
+
+  const user = (() => { try { return JSON.parse(localStorage.getItem("tp_user") || "{}"); } catch { return {}; } })();
+
+  const sendBroadcast = async (e) => {
+    e.preventDefault();
+    setSending(true);
+    try {
+      await api("/notifications/broadcast", { method: "POST", body: JSON.stringify(bForm) });
+      setBForm({ audienceRole: "STAFF", title: "", message: "", type: "GENERAL" });
+      setShowBroadcast(false);
+      load(page);
+    } finally { setSending(false); }
+  };
 
   const load = (p = page) =>
     api(`/notifications?paginated=true&page=${p}&pageSize=20${onlyUnread ? "&unread=true" : ""}`)
@@ -28,6 +44,8 @@ export default function NotificationsPage() {
 
   const markRead = async (id) => { await api(`/notifications/${id}/read`, { method: "PATCH" }); load(page); };
 
+  const inputStyle = { background: t.contentBg, border: `1px solid ${t.border}`, borderRadius: 8, padding: "9px 12px", color: t.text1, fontSize: 13, outline: "none", fontFamily: "inherit", width: "100%", boxSizing: "border-box" };
+
   return (
     <div className="anim-fade" style={{ padding: 28, overflowY: "auto", height: "100%", display: "flex", flexDirection: "column", gap: 20 }}>
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
@@ -35,11 +53,61 @@ export default function NotificationsPage() {
           <div style={{ fontSize: 22, fontWeight: 700, color: t.text1 }}>Notifications</div>
           <div style={{ fontSize: 13, color: t.text2, marginTop: 2 }}>{meta.total || 0} total</div>
         </div>
-        <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13, color: t.text2, cursor: "pointer" }}>
-          <input type="checkbox" checked={onlyUnread} onChange={(e) => { setOnlyUnread(e.target.checked); setPage(1); }} />
-          Unread only
-        </label>
+        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+          {(user.role === "ADMIN" || user.role === "HOD") && (
+            <button onClick={() => setShowBroadcast((v) => !v)}
+              style={{ background: t.accent, border: "none", borderRadius: 8, padding: "8px 16px", color: "#fff", fontSize: 13, fontWeight: 600, cursor: "pointer" }}>
+              {showBroadcast ? "Cancel" : "+ Broadcast"}
+            </button>
+          )}
+          <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13, color: t.text2, cursor: "pointer" }}>
+            <input type="checkbox" checked={onlyUnread} onChange={(e) => { setOnlyUnread(e.target.checked); setPage(1); }} />
+            Unread only
+          </label>
+        </div>
       </div>
+
+      {showBroadcast && (
+        <form onSubmit={sendBroadcast}
+          style={{ background: t.surfaceBg, border: `1px solid ${t.border}`, borderRadius: 12, padding: 20, display: "flex", flexDirection: "column", gap: 12 }}>
+          <div style={{ fontSize: 14, fontWeight: 600, color: t.text1 }}>Send Broadcast</div>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 10 }}>
+            <div style={{ display: "flex", flexDirection: "column", gap: 5 }}>
+              <label style={{ fontSize: 11, fontWeight: 600, color: t.text3, textTransform: "uppercase" }}>Audience</label>
+              <select style={inputStyle} value={bForm.audienceRole} onChange={(e) => setBForm({ ...bForm, audienceRole: e.target.value })}>
+                <option value="STAFF">Staff</option>
+                <option value="HOD">HOD</option>
+                <option value="ADMIN">Admin</option>
+                <option value="CLIENT">Client</option>
+              </select>
+            </div>
+            <div style={{ display: "flex", flexDirection: "column", gap: 5 }}>
+              <label style={{ fontSize: 11, fontWeight: 600, color: t.text3, textTransform: "uppercase" }}>Type</label>
+              <select style={inputStyle} value={bForm.type} onChange={(e) => setBForm({ ...bForm, type: e.target.value })}>
+                <option value="GENERAL">General</option>
+                <option value="HOD_REVIEW">HOD Review</option>
+                <option value="INVOICE_OVERDUE">Invoice Overdue</option>
+              </select>
+            </div>
+            <div style={{ display: "flex", flexDirection: "column", gap: 5 }}>
+              <label style={{ fontSize: 11, fontWeight: 600, color: t.text3, textTransform: "uppercase" }}>Title *</label>
+              <input required style={inputStyle} placeholder="Notification title" value={bForm.title}
+                onChange={(e) => setBForm({ ...bForm, title: e.target.value })} />
+            </div>
+          </div>
+          <div style={{ display: "flex", flexDirection: "column", gap: 5 }}>
+            <label style={{ fontSize: 11, fontWeight: 600, color: t.text3, textTransform: "uppercase" }}>Message *</label>
+            <textarea required rows={2} style={{ ...inputStyle, resize: "vertical" }} placeholder="Message body…"
+              value={bForm.message} onChange={(e) => setBForm({ ...bForm, message: e.target.value })} />
+          </div>
+          <div style={{ display: "flex", justifyContent: "flex-end" }}>
+            <button type="submit" disabled={sending}
+              style={{ background: t.accent, border: "none", borderRadius: 8, padding: "9px 20px", color: "#fff", fontSize: 13, fontWeight: 600, cursor: sending ? "not-allowed" : "pointer", opacity: sending ? 0.6 : 1 }}>
+              {sending ? "Sending…" : "Send"}
+            </button>
+          </div>
+        </form>
+      )}
 
       <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
         {items.map((n) => {
