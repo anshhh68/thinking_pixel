@@ -9,7 +9,10 @@ router.use(authGuard);
 
 // GET /api/jobsheet?date=YYYY-MM-DD&staffName=&jobId=
 router.get("/", requireRole("STAFF", "HOD", "ADMIN"), async (req, res) => {
-  const { date, staffName, jobId } = req.query;
+  let { date, staffName, jobId } = req.query;
+
+  // STAFF can only see their own tasks
+  if (req.user.role === "STAFF") staffName = req.user.name;
 
   const taskWhere = {};
   if (staffName) taskWhere.assignedTo = { contains: staffName, mode: "insensitive" };
@@ -29,6 +32,33 @@ router.get("/", requireRole("STAFF", "HOD", "ADMIN"), async (req, res) => {
   });
 
   res.json(tasks);
+});
+
+// GET /api/jobsheet/workload — HOD/ADMIN: tasks grouped by staff member
+router.get("/workload", requireRole("HOD", "ADMIN"), async (_req, res) => {
+  const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+
+  const rows = await prisma.task.groupBy({
+    by: ["assignedTo", "status"],
+    _count: { _all: true },
+    where: {
+      assignedTo: { not: null },
+      OR: [
+        { status: { not: "DONE" } },
+        { updatedAt: { gte: sevenDaysAgo } },
+      ],
+    },
+  });
+
+  const map = {};
+  for (const r of rows) {
+    const k = r.assignedTo;
+    if (!map[k]) map[k] = { staffName: k, TODO: 0, IN_PROGRESS: 0, DONE: 0, total: 0 };
+    map[k][r.status] = (map[k][r.status] || 0) + r._count._all;
+    map[k].total += r._count._all;
+  }
+
+  res.json(Object.values(map).sort((a, b) => b.total - a.total));
 });
 
 // PATCH /api/jobsheet/tasks/:taskId — update job sheet fields

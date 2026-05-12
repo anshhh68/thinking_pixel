@@ -4,6 +4,7 @@ import { api } from "../../lib/api";
 import { useTheme } from "../../lib/theme";
 import { getStoredUser } from "../../lib/auth";
 import { StatusBadge, ProgressBar } from "../../components/ui";
+import TaskPanel from "./TaskPanel";
 
 const COLS = [
   { key: "OPEN",            label: "Open",          color: "#F59E0B" },
@@ -58,6 +59,9 @@ export default function DashboardPage() {
           </div>
         ))}
       </div>
+
+      {/* Task Panel — role-aware */}
+      <TaskPanel user={user} />
 
       {/* Kanban */}
       <div style={{ display: "flex", gap: 14, flex: 1, overflowX: "auto", minHeight: 0 }}>
