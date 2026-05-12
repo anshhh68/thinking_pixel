@@ -28,6 +28,27 @@ router.post("/attendance", requireRole("ADMIN", "HOD"), async (req, res) => {
   res.status(201).json(attendance);
 });
 
+router.get("/leave-requests", async (req, res) => {
+  const where = req.user.role === "ADMIN" || req.user.role === "HOD"
+    ? {}
+    : { employee: { userId: req.user.id } };
+  const leaves = await prisma.leaveRequest.findMany({
+    where,
+    include: { employee: { include: { user: true } } },
+    orderBy: { createdAt: "desc" },
+  });
+  res.json(leaves);
+});
+
+router.get("/attendance", async (req, res) => {
+  const attendance = await prisma.attendance.findMany({
+    include: { employee: { include: { user: true } } },
+    orderBy: { date: "desc" },
+    take: 100,
+  });
+  res.json(attendance);
+});
+
 router.post("/leave-requests", async (req, res) => {
   const { employeeId, startDate, endDate, reason } = req.body;
   const leave = await prisma.leaveRequest.create({

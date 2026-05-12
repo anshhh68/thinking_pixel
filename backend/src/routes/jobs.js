@@ -241,4 +241,54 @@ router.post("/:jobId/client-review-link", requireRole("HOD", "ADMIN"), async (re
   });
 });
 
+router.patch("/:jobId", requireRole("STAFF", "HOD", "ADMIN"), async (req, res) => {
+  const { jobId } = req.params;
+  const { title, owner, dueDate, priority, status } = req.body;
+  const updated = await prisma.job.update({
+    where: { id: jobId },
+    data: {
+      ...(title && { title }),
+      ...(owner !== undefined && { owner }),
+      ...(dueDate !== undefined && { dueDate: dueDate ? new Date(dueDate) : null }),
+      ...(priority && { priority }),
+      ...(status && { status }),
+    },
+  });
+  await logAudit({
+    actorId: req.user.id,
+    actorRole: req.user.role,
+    action: "JOB_UPDATED",
+    entityType: "Job",
+    entityId: updated.id,
+    payload: req.body,
+  });
+  res.json(updated);
+});
+
+router.delete("/:jobId", requireRole("ADMIN"), async (req, res) => {
+  const { jobId } = req.params;
+  await prisma.job.delete({ where: { id: jobId } });
+  await logAudit({
+    actorId: req.user.id,
+    actorRole: req.user.role,
+    action: "JOB_DELETED",
+    entityType: "Job",
+    entityId: jobId,
+  });
+  res.status(204).send();
+});
+
+router.delete("/tasks/:taskId", requireRole("ADMIN"), async (req, res) => {
+  const { taskId } = req.params;
+  await prisma.task.delete({ where: { id: taskId } });
+  await logAudit({
+    actorId: req.user.id,
+    actorRole: req.user.role,
+    action: "TASK_DELETED",
+    entityType: "Task",
+    entityId: taskId,
+  });
+  res.status(204).send();
+});
+
 module.exports = router;

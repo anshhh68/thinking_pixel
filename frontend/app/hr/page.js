@@ -19,6 +19,7 @@ export default function HrPage() {
   const [tab, setTab] = useState("employees");
   const [employees, setEmployees] = useState([]);
   const [leaveRequests, setLeaveRequests] = useState([]);
+  const [attendance, setAttendance] = useState([]);
   const [employeeForm, setEmployeeForm] = useState(EMPTY_EMPLOYEE);
   const [attendanceForm, setAttendanceForm] = useState(EMPTY_ATTENDANCE);
   const [leaveForm, setLeaveForm] = useState(EMPTY_LEAVE);
@@ -28,6 +29,7 @@ export default function HrPage() {
   const load = () => Promise.all([
     api("/hr/employees").then(setEmployees).catch(() => null),
     api("/hr/leave-requests").then(setLeaveRequests).catch(() => null),
+    api("/hr/attendance").then(setAttendance).catch(() => null),
   ]);
 
   useEffect(() => { load(); }, []);
@@ -133,9 +135,14 @@ export default function HrPage() {
           <div style={{ fontSize: 14, fontWeight: 600, color: t.text1 }}>Mark Attendance</div>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 12 }}>
             <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-              <label style={labelStyle}>Employee ID *</label>
-              <input style={inputStyle} required placeholder="emp-id" value={attendanceForm.employeeId}
-                onChange={(e) => setAttendanceForm({ ...attendanceForm, employeeId: e.target.value })} />
+              <label style={labelStyle}>Employee *</label>
+              <select style={inputStyle} required value={attendanceForm.employeeId}
+                onChange={(e) => setAttendanceForm({ ...attendanceForm, employeeId: e.target.value })}>
+                <option value="">Select employee…</option>
+                {employees.map((emp) => (
+                  <option key={emp.id} value={emp.id}>{emp.user?.name || emp.id}</option>
+                ))}
+              </select>
             </div>
             <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
               <label style={labelStyle}>Date *</label>
@@ -159,6 +166,19 @@ export default function HrPage() {
             </button>
           </div>
         </form>
+        <div style={{ display: "flex", flexDirection: "column", gap: 8, marginTop: 8 }}>
+          <div style={{ fontSize: 14, fontWeight: 600, color: t.text1 }}>Recent Attendance</div>
+          {attendance.length === 0 && <div style={{ fontSize: 13, color: t.text3 }}>No records yet.</div>}
+          {attendance.map((a) => (
+            <div key={a.id} style={{ background: t.surfaceBg, border: `1px solid ${t.border}`, borderRadius: 10, padding: "12px 16px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+              <div>
+                <div style={{ fontSize: 13, fontWeight: 500, color: t.text1 }}>{a.employee?.user?.name || a.employeeId}</div>
+                <div style={{ fontSize: 12, color: t.text2 }}>{new Date(a.date).toLocaleDateString()}</div>
+              </div>
+              <span style={{ fontSize: 12, fontWeight: 600, color: a.status === "PRESENT" ? t.emerald : a.status === "ABSENT" ? t.red : t.text2 }}>{a.status}</span>
+            </div>
+          ))}
+        </div>
       )}
 
       {/* Leave tab */}
@@ -170,9 +190,14 @@ export default function HrPage() {
             <div style={{ fontSize: 14, fontWeight: 600, color: t.text1 }}>Submit Leave Request</div>
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 12 }}>
               <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-                <label style={labelStyle}>Employee ID *</label>
-                <input style={inputStyle} required value={leaveForm.employeeId}
-                  onChange={(e) => setLeaveForm({ ...leaveForm, employeeId: e.target.value })} />
+                <label style={labelStyle}>Employee *</label>
+                <select style={inputStyle} required value={leaveForm.employeeId}
+                  onChange={(e) => setLeaveForm({ ...leaveForm, employeeId: e.target.value })}>
+                  <option value="">Select employee…</option>
+                  {employees.map((emp) => (
+                    <option key={emp.id} value={emp.id}>{emp.user?.name || emp.id}</option>
+                  ))}
+                </select>
               </div>
               <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
                 <label style={labelStyle}>Start Date *</label>

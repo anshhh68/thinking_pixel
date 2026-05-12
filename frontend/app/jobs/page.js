@@ -20,6 +20,10 @@ export default function JobsPage() {
   const [reviewLinks, setReviewLinks] = useState({});
   const [expandedJob, setExpandedJob] = useState(null);
   const [error, setError] = useState("");
+  const [editingJobId, setEditingJobId] = useState(null);
+  const [confirmDeleteJob, setConfirmDeleteJob] = useState(null);
+
+  const user = (() => { try { return JSON.parse(localStorage.getItem("tp_user") || "{}"); } catch { return {}; } })();
 
   const load = (p = page) =>
     Promise.all([
@@ -61,6 +65,33 @@ export default function JobsPage() {
     load(page);
   };
 
+  const startEditJob = (job) => {
+    setEditingJobId(job.id);
+    setJobForm({
+      clientId: job.clientId || "",
+      title: job.title || "",
+      owner: job.owner || "",
+      dueDate: job.dueDate ? new Date(job.dueDate).toISOString().split("T")[0] : "",
+      priority: job.priority || "MEDIUM",
+    });
+    setShowForm(true);
+  };
+
+  const saveJob = async (e) => {
+    e.preventDefault(); setSaving(true); setError("");
+    try {
+      await api(`/jobs/${editingJobId}`, { method: "PATCH", body: JSON.stringify(jobForm) });
+      setJobForm(EMPTY_JOB); setShowForm(false); setEditingJobId(null); load(page);
+    } catch (err) {
+      setError(err.message);
+    } finally { setSaving(false); }
+  };
+
+  const deleteJob = async (jobId) => {
+    await api(`/jobs/${jobId}`, { method: "DELETE" });
+    setConfirmDeleteJob(null); load(page);
+  };
+
   const inputStyle = {
     background: t.contentBg, border: `1px solid ${t.border}`, borderRadius: 8,
     padding: "9px 12px", color: t.text1, fontSize: 13, outline: "none",
@@ -83,9 +114,9 @@ export default function JobsPage() {
 
       {/* Create form */}
       {showForm && (
-        <form onSubmit={createJob}
+        <form onSubmit={editingJobId ? saveJob : createJob}
           style={{ background: t.surfaceBg, border: `1px solid ${t.border}`, borderRadius: 14, padding: 24, display: "flex", flexDirection: "column", gap: 16 }}>
-          <div style={{ fontSize: 14, fontWeight: 600, color: t.text1 }}>New Job</div>
+          <div style={{ fontSize: 14, fontWeight: 600, color: t.text1 }}>{editingJobId ? "Edit Job" : "New Job"}</div>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr", gap: 12 }}>
             <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
               <label style={labelStyle}>Client *</label>
@@ -122,13 +153,13 @@ export default function JobsPage() {
           </div>
           {error && <div style={{ fontSize: 13, color: t.red, background: "rgba(248,113,113,0.1)", borderRadius: 7, padding: "8px 12px" }}>{error}</div>}
           <div style={{ display: "flex", justifyContent: "flex-end", gap: 10 }}>
-            <button type="button" onClick={() => { setShowForm(false); setJobForm(EMPTY_JOB); setError(""); }}
+            <button type="button" onClick={() => { setShowForm(false); setJobForm(EMPTY_JOB); setError(""); setEditingJobId(null); }}
               style={{ background: "none", border: `1px solid ${t.border}`, borderRadius: 8, padding: "9px 18px", color: t.text2, fontSize: 13, cursor: "pointer" }}>
               Cancel
             </button>
             <button type="submit" disabled={saving}
               style={{ background: t.accent, border: "none", borderRadius: 8, padding: "9px 18px", color: "#fff", fontSize: 13, fontWeight: 600, cursor: saving ? "not-allowed" : "pointer", opacity: saving ? 0.6 : 1 }}>
-              {saving ? "Creating…" : "Create Job"}
+              {saving ? "Saving…" : editingJobId ? "Save Changes" : "Create Job"}
             </button>
           </div>
         </form>
@@ -154,6 +185,31 @@ export default function JobsPage() {
                   </div>
                   <div style={{ fontSize: 12, color: t.text2, marginBottom: 8 }}>{job.client?.name || "—"} {job.owner ? `· ${job.owner}` : ""} {job.dueDate ? `· Due ${new Date(job.dueDate).toLocaleDateString()}` : ""}</div>
                   <ProgressBar value={pct} color={t.accent} t={t} />
+                </div>
+                <div style={{ display: "flex", gap: 6 }} onClick={(e) => e.stopPropagation()}>
+                  <button onClick={() => startEditJob(job)}
+                    style={{ background: "none", border: `1px solid ${t.border}`, borderRadius: 6, padding: "4px 10px", fontSize: 11, color: t.text2, cursor: "pointer" }}>
+                    Edit
+                  </button>
+                  {user.role === "ADMIN" && (
+                    confirmDeleteJob === job.id ? (
+                      <>
+                        <button onClick={() => deleteJob(job.id)}
+                          style={{ background: t.red, border: "none", borderRadius: 6, padding: "4px 10px", fontSize: 11, color: "#fff", cursor: "pointer" }}>
+                          Confirm
+                        </button>
+                        <button onClick={() => setConfirmDeleteJob(null)}
+                          style={{ background: "none", border: `1px solid ${t.border}`, borderRadius: 6, padding: "4px 10px", fontSize: 11, color: t.text2, cursor: "pointer" }}>
+                          Cancel
+                        </button>
+                      </>
+                    ) : (
+                      <button onClick={() => setConfirmDeleteJob(job.id)}
+                        style={{ background: "none", border: `1px solid ${t.red}40`, borderRadius: 6, padding: "4px 10px", fontSize: 11, color: t.red, cursor: "pointer" }}>
+                        Delete
+                      </button>
+                    )
+                  )}
                 </div>
                 <div style={{ fontSize: 12, color: t.text3, whiteSpace: "nowrap" }}>{doneCount}/{taskCount} tasks</div>
                 <div style={{ fontSize: 11, color: t.text3, transform: isExpanded ? "rotate(180deg)" : "none", transition: "transform 0.2s" }}>▼</div>
