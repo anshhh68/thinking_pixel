@@ -12,6 +12,8 @@ const accountsRoutes = require("./routes/accounts");
 const notificationRoutes = require("./routes/notifications");
 const leadershipRoutes = require("./routes/leadership");
 const auditLogsRoutes = require("./routes/auditLogs");
+const chatRoutes = require("./routes/chat");
+const jobsheetRoutes = require("./routes/jobsheet");
 const { startReminderScheduler } = require("./jobs/reminderScheduler");
 
 const app = express();
@@ -34,6 +36,8 @@ app.use("/api/accounts", accountsRoutes);
 app.use("/api/notifications", notificationRoutes);
 app.use("/api/leadership", leadershipRoutes);
 app.use("/api/audit-logs", auditLogsRoutes);
+app.use("/api/chat", chatRoutes);
+app.use("/api/jobsheet", jobsheetRoutes);
 
 app.use((err, _req, res, _next) => {
   console.error(err);

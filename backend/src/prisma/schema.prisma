@@ -26,7 +26,7 @@ model User {
 }
 
 model Client {
-  id           String   @id @default(uuid())
+  id           String       @id @default(uuid())
   name         String
   contactInfo  String?
   requirements String?
@@ -35,7 +35,8 @@ model Client {
   priority     String?
   jobs         Job[]
   invoices     Invoice[]
-  createdAt    DateTime @default(now())
+  chatChannel  ChatChannel?
+  createdAt    DateTime     @default(now())
 }
 
 model Job {
@@ -56,18 +57,22 @@ model Job {
 }
 
 model Task {
-  id             String         @id @default(uuid())
-  jobId          String
-  assignedTo     String?
-  description    String
-  status         String         @default("TODO")
-  dueDate        DateTime?
-  readyForReview Boolean        @default(false)
-  hodReviewStatus String        @default("PENDING")
+  id               String         @id @default(uuid())
+  jobId            String
+  assignedTo       String?
+  description      String
+  status           String         @default("TODO")
+  dueDate          DateTime?
+  readyForReview   Boolean        @default(false)
+  hodReviewStatus  String         @default("PENDING")
   hodReviewComment String?
-  job            Job            @relation(fields: [jobId], references: [id], onDelete: Cascade)
-  versions       AssetVersion[]
-  createdAt      DateTime       @default(now())
+  quantity         Int?
+  copyStatus       String?
+  brief            String?
+  size             String?
+  job              Job            @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  versions         AssetVersion[]
+  createdAt        DateTime       @default(now())
 }
 
 model AssetVersion {
@@ -139,12 +144,31 @@ model Notification {
 }
 
 model AuditLog {
-  id        String   @id @default(uuid())
-  actorId   String?
-  actorRole String?
-  action    String
+  id         String   @id @default(uuid())
+  actorId    String?
+  actorRole  String?
+  action     String
   entityType String
-  entityId  String?
-  payload   Json?
-  createdAt DateTime @default(now())
+  entityId   String?
+  payload    Json?
+  createdAt  DateTime @default(now())
+}
+
+model ChatChannel {
+  id        String        @id @default(uuid())
+  clientId  String        @unique
+  name      String
+  client    Client        @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  messages  ChatMessage[]
+  createdAt DateTime      @default(now())
+}
+
+model ChatMessage {
+  id        String      @id @default(uuid())
+  channelId String
+  senderId  String
+  senderName String
+  body      String
+  channel   ChatChannel @relation(fields: [channelId], references: [id], onDelete: Cascade)
+  createdAt DateTime    @default(now())
 }

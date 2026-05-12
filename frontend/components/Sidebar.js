@@ -15,6 +15,8 @@ const ALL_NAV = [
   { id: "leadership",    href: "/leadership",    label: "Leadership",    icon: "◈" },
   { id: "approvals",     href: "/approvals/hod", label: "Approvals",     icon: "◑" },
   { id: "audit",         href: "/audit",         label: "Audit Logs",    icon: "◧" },
+  { id: "chat",          href: "/chat",           label: "Chat",          icon: "◫" },
+  { id: "jobsheet",      href: "/jobsheet",       label: "Job Sheet",     icon: "◩" },
 ];
 
 // ─── RBAC: maps each role to the nav sections it can access ─────────────────
@@ -22,31 +24,31 @@ const ALL_NAV = [
 //   Leadership │ Creative │ Motion/Video │ Strategy │ Accounts │ Finance │ HR
 const ROLE_NAV = {
   // Full system access — owner / managing director
-  ADMIN:                   ["dashboard","clients","jobs","creative","hr","accounts","notifications","leadership","approvals","audit"],
+  ADMIN:                   ["dashboard","clients","jobs","creative","hr","accounts","notifications","leadership","approvals","audit","chat","jobsheet"],
 
   // Head of Department — cross-department oversight, approvals, no raw audit
-  HOD:                     ["dashboard","clients","jobs","creative","hr","accounts","notifications","leadership","approvals"],
+  HOD:                     ["dashboard","clients","jobs","creative","hr","accounts","notifications","leadership","approvals","chat","jobsheet"],
 
   // Art Director / Creative Director — creative team lead, job pipeline, can approve tasks
-  CREATIVE_DIRECTOR:       ["dashboard","clients","jobs","creative","notifications","leadership","approvals"],
+  CREATIVE_DIRECTOR:       ["dashboard","clients","jobs","creative","notifications","leadership","approvals","chat"],
 
   // Senior Graphic Designer — executes and reviews creative work, peer approvals
-  SENIOR_GRAPHIC_DESIGNER: ["dashboard","jobs","creative","notifications","approvals"],
+  SENIOR_GRAPHIC_DESIGNER: ["dashboard","jobs","creative","notifications","approvals","chat"],
 
   // Graphic Designer — executes assigned creative tasks
-  GRAPHIC_DESIGNER:        ["dashboard","jobs","creative","notifications"],
+  GRAPHIC_DESIGNER:        ["dashboard","jobs","creative","notifications","chat"],
 
   // Motion Graphics / Video Editor — production work only
-  MOTION_VIDEO_EDITOR:     ["dashboard","jobs","creative","notifications"],
+  MOTION_VIDEO_EDITOR:     ["dashboard","jobs","creative","notifications","chat"],
 
   // Content Strategist — strategy-led, needs client context and job visibility
-  CONTENT_STRATEGIST:      ["dashboard","clients","jobs","creative","notifications"],
+  CONTENT_STRATEGIST:      ["dashboard","clients","jobs","creative","notifications","chat"],
 
   // Account Manager — client relationships, job pipeline, financial overview
-  ACCOUNT_MANAGER:         ["dashboard","clients","jobs","accounts","notifications","leadership"],
+  ACCOUNT_MANAGER:         ["dashboard","clients","jobs","accounts","notifications","leadership","chat"],
 
   // Account Executive — client-facing ops, job tracking, no financials
-  ACCOUNT_EXECUTIVE:       ["dashboard","clients","jobs","notifications"],
+  ACCOUNT_EXECUTIVE:       ["dashboard","clients","jobs","notifications","chat"],
 
   // Accountant / Finance — invoices, payments, audit trail
   ACCOUNTANT_FINANCE:      ["dashboard","accounts","notifications","audit"],
@@ -55,10 +57,10 @@ const ROLE_NAV = {
   COMPLIANCE_OFFICER:      ["dashboard","accounts","audit"],
 
   // HR Manager — people ops, attendance, leave management
-  HR_MANAGER:              ["dashboard","hr","notifications","leadership"],
+  HR_MANAGER:              ["dashboard","hr","notifications","leadership","chat"],
 
   // General staff fallback — basic job and creative access
-  STAFF:                   ["dashboard","jobs","creative","notifications"],
+  STAFF:                   ["dashboard","jobs","creative","notifications","chat"],
 
   // External client — only accesses public /client-review/[token] (no sidebar nav)
   CLIENT:                  [],

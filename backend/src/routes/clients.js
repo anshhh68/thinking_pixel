@@ -29,6 +29,9 @@ router.post("/", requireRole("STAFF", "HOD", "ADMIN"), async (req, res) => {
   const created = await prisma.client.create({
     data: { name, contactInfo, requirements, scope, timeline, priority },
   });
+  await prisma.chatChannel.create({
+    data: { clientId: created.id, name: `${created.name} — General` },
+  });
   await logAudit({
     actorId: req.user.id,
     actorRole: req.user.role,

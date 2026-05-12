@@ -9,9 +9,9 @@ import { useTheme } from "../lib/theme";
 const PUBLIC = ["/login", "/client-review"];
 
 const ROLE_PATHS = {
-  ADMIN:  ["/dashboard", "/clients", "/jobs", "/creative", "/hr", "/accounts", "/leadership", "/notifications", "/audit", "/approvals"],
-  HOD:    ["/dashboard", "/jobs", "/creative", "/notifications", "/approvals"],
-  STAFF:  ["/dashboard", "/jobs", "/creative", "/notifications"],
+  ADMIN:  ["/dashboard", "/clients", "/jobs", "/creative", "/hr", "/accounts", "/leadership", "/notifications", "/audit", "/approvals", "/chat", "/jobsheet"],
+  HOD:    ["/dashboard", "/jobs", "/creative", "/notifications", "/approvals", "/chat", "/jobsheet"],
+  STAFF:  ["/dashboard", "/jobs", "/creative", "/notifications", "/chat"],
   CLIENT: [],
 };
 
