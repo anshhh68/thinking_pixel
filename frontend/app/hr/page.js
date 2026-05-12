@@ -130,6 +130,7 @@ export default function HrPage() {
 
       {/* Attendance tab */}
       {tab === "attendance" && (
+        <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
         <form onSubmit={markAttendance}
           style={{ background: t.surfaceBg, border: `1px solid ${t.border}`, borderRadius: 14, padding: 24, display: "flex", flexDirection: "column", gap: 16 }}>
           <div style={{ fontSize: 14, fontWeight: 600, color: t.text1 }}>Mark Attendance</div>
@@ -178,6 +179,7 @@ export default function HrPage() {
               <span style={{ fontSize: 12, fontWeight: 600, color: a.status === "PRESENT" ? t.emerald : a.status === "ABSENT" ? t.red : t.text2 }}>{a.status}</span>
             </div>
           ))}
+        </div>
         </div>
       )}
 
