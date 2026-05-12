@@ -6,12 +6,19 @@ import { getStoredUser } from "../../lib/auth";
 import { StatusBadge, ProgressBar } from "../../components/ui";
 
 const COLS = [
-  { key: "PENDING",    label: "Pending",      color: "#F59E0B" },
-  { key: "IN_PROGRESS",label: "In Progress",  color: "#7C7FF5" },
-  { key: "HOD_REVIEW", label: "HOD Review",   color: "#22D3EE" },
-  { key: "CLIENT_APPROVED", label: "Approved",color: "#10B981" },
-  { key: "DONE",       label: "Done",         color: "#10B981" },
+  { key: "OPEN",            label: "Open",          color: "#F59E0B" },
+  { key: "IN_PROGRESS",     label: "In Progress",   color: "#7C7FF5" },
+  { key: "CLIENT_REVIEW",   label: "Client Review", color: "#22D3EE" },
+  { key: "REWORK_REQUIRED", label: "Rework",        color: "#EF4444" },
+  { key: "CLIENT_APPROVED", label: "Approved",      color: "#10B981" },
+  { key: "DONE",            label: "Done",          color: "#059669" },
 ];
+
+const computeProgress = (job) => {
+  const tasks = job?.tasks || [];
+  if (tasks.length === 0) return 0;
+  return Math.round((tasks.filter((t) => t.status === "DONE").length / tasks.length) * 100);
+};
 
 export default function DashboardPage() {
   const { t } = useTheme();
@@ -43,7 +50,7 @@ export default function DashboardPage() {
           { label: "Total Jobs",   value: kpis?.jobs?.total ?? jobs.length, icon: "◉" },
           { label: "In Progress",  value: kpis?.tasks?.inProgress ?? "—",   icon: "◑" },
           { label: "Team Size",    value: kpis?.hr?.totalEmployees ?? "—",  icon: "◎" },
-          { label: "Pending Approval", value: byStatus("HOD_REVIEW").length, icon: "◈" },
+          { label: "Pending Approval", value: byStatus("CLIENT_REVIEW").length, icon: "◈" },
         ].map((k) => (
           <div key={k.label} style={{ flex: 1, background: t.surfaceBg, border: `1px solid ${t.border}`, borderRadius: 12, padding: "16px 20px" }}>
             <div style={{ fontSize: 12, color: t.text3, marginBottom: 8 }}>{k.icon} {k.label}</div>
@@ -68,7 +75,7 @@ export default function DashboardPage() {
                   <div style={{ fontSize: 11, color: t.text3, fontFamily: "var(--font-mono),monospace", marginBottom: 4 }}>{job.id?.slice(0, 8)}</div>
                   <div style={{ fontSize: 13, fontWeight: 600, color: t.text1, marginBottom: 6 }}>{job.title}</div>
                   <div style={{ fontSize: 12, color: t.text2, marginBottom: 8 }}>{job.client?.name || "—"}</div>
-                  <ProgressBar value={job.progress || 0} color={col.color} t={t} />
+                  <ProgressBar value={computeProgress(job)} color={col.color} t={t} />
                 </div>
               ))}
               {colJobs.length === 0 && (
