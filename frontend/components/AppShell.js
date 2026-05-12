@@ -8,6 +8,13 @@ import { useTheme } from "../lib/theme";
 
 const PUBLIC = ["/login", "/client-review"];
 
+const ROLE_PATHS = {
+  ADMIN:  ["/dashboard", "/clients", "/jobs", "/creative", "/hr", "/accounts", "/leadership", "/notifications", "/audit", "/approvals"],
+  HOD:    ["/dashboard", "/jobs", "/creative", "/notifications", "/approvals"],
+  STAFF:  ["/dashboard", "/jobs", "/creative", "/notifications"],
+  CLIENT: [],
+};
+
 export default function AppShell({ children }) {
   const pathname = usePathname();
   const router = useRouter();
@@ -18,6 +25,11 @@ export default function AppShell({ children }) {
   useEffect(() => {
     const user = getStoredUser();
     if (!isPublic && !user) { router.replace("/login"); return; }
+    if (user && !isPublic) {
+      const allowed = ROLE_PATHS[user.role] || [];
+      const canAccess = allowed.some((p) => pathname.startsWith(p));
+      if (!canAccess) { router.replace("/dashboard"); return; }
+    }
     setReady(true);
   }, [isPublic, pathname, router]);
 
