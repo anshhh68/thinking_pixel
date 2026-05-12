@@ -2,7 +2,7 @@
   "name": "backend",
   "version": "1.0.0",
   "scripts": {
-    "start": "prisma migrate deploy --schema src/prisma/schema.prisma && node src/index.js",
+    "start": "prisma db push --schema src/prisma/schema.prisma --accept-data-loss && node src/index.js",
     "dev": "node src/index.js",
     "postinstall": "prisma generate --schema src/prisma/schema.prisma",
     "prisma:generate": "prisma generate --schema src/prisma/schema.prisma",

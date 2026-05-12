@@ -155,20 +155,37 @@ model AuditLog {
 }
 
 model ChatChannel {
-  id        String        @id @default(uuid())
-  clientId  String        @unique
-  name      String
-  client    Client        @relation(fields: [clientId], references: [id], onDelete: Cascade)
-  messages  ChatMessage[]
-  createdAt DateTime      @default(now())
+  id          String        @id @default(uuid())
+  clientId    String?       @unique
+  name        String
+  description String?
+  client      Client?       @relation(fields: [clientId], references: [id], onDelete: SetNull)
+  messages    ChatMessage[]
+  typingUsers ChatTyping[]
+  createdAt   DateTime      @default(now())
 }
 
 model ChatMessage {
-  id        String      @id @default(uuid())
+  id             String      @id @default(uuid())
+  channelId      String
+  senderId       String
+  senderName     String
+  body           String?
+  attachmentUrl  String?
+  attachmentName String?
+  attachmentType String?
+  editedAt       DateTime?
+  deletedAt      DateTime?
+  channel        ChatChannel @relation(fields: [channelId], references: [id], onDelete: Cascade)
+  createdAt      DateTime    @default(now())
+}
+
+model ChatTyping {
   channelId String
-  senderId  String
-  senderName String
-  body      String
+  userId    String
+  userName  String
+  updatedAt DateTime    @updatedAt
   channel   ChatChannel @relation(fields: [channelId], references: [id], onDelete: Cascade)
-  createdAt DateTime    @default(now())
+
+  @@id([channelId, userId])
 }
