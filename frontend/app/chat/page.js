@@ -339,7 +339,9 @@ export default function ChatPage() {
                             </div>
                           )}
                           {msg.attachmentType === "image" && msg.attachmentUrl && (
-                            <img src={msg.attachmentUrl} alt={msg.attachmentName || "image"} style={{ maxWidth: 320, maxHeight: 240, borderRadius: 8, marginTop: msg.body ? 6 : 0, display: "block", objectFit: "contain", background: t.border }} />
+                            <a href={msg.attachmentUrl} download={msg.attachmentName || "image"} title="Click to download">
+                              <img src={msg.attachmentUrl} alt={msg.attachmentName || "image"} style={{ maxWidth: 320, maxHeight: 240, borderRadius: 8, marginTop: msg.body ? 6 : 0, display: "block", objectFit: "contain", background: t.border, cursor: "pointer" }} />
+                            </a>
                           )}
                           {msg.attachmentType === "file" && msg.attachmentUrl && (
                             <a href={msg.attachmentUrl} download={msg.attachmentName}
@@ -354,14 +356,18 @@ export default function ChatPage() {
                     {/* Hover actions */}
                     {isHovered && !isDeleted && !isEditing && (
                       <div style={{ position: "absolute", right: 8, top: "50%", transform: "translateY(-50%)", display: "flex", gap: 4, background: t.surfaceBg, border: `1px solid ${t.border}`, borderRadius: 8, padding: "3px 6px" }}>
+                        {msg.attachmentUrl && (
+                          <a href={msg.attachmentUrl} download={msg.attachmentName || "file"} title="Download"
+                            style={{ background: "none", border: "none", color: t.text2, cursor: "pointer", fontSize: 14, padding: "2px 4px", borderRadius: 4, textDecoration: "none", display: "flex", alignItems: "center" }}>⬇</a>
+                        )}
                         {(isMe || user?.role === "ADMIN") && (
                           <>
-                            {isMe && (
+                            {isMe && msg.body && (
                               <button onClick={() => { setEditingMsgId(msg.id); setEditDraft(msg.body || ""); }}
                                 title="Edit" style={{ background: "none", border: "none", color: t.text2, cursor: "pointer", fontSize: 14, padding: "2px 4px", borderRadius: 4 }}>✎</button>
                             )}
                             <button onClick={() => deleteMsg(msg.id)}
-                              title="Delete" style={{ background: "none", border: "none", color: t.red || "#EF4444", cursor: "pointer", fontSize: 14, padding: "2px 4px", borderRadius: 4 }}>🗑</button>
+                              title="Delete" style={{ background: "none", border: "none", color: "#EF4444", cursor: "pointer", fontSize: 14, padding: "2px 4px", borderRadius: 4 }}>🗑</button>
                           </>
                         )}
                       </div>
