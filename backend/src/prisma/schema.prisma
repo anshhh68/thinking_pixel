@@ -76,13 +76,29 @@ model Task {
   updatedAt        DateTime       @default(now()) @updatedAt
 }
 
+model Folder {
+  id          String         @id @default(uuid())
+  name        String
+  parentId    String?
+  parent      Folder?        @relation("FolderTree", fields: [parentId], references: [id], onDelete: Cascade)
+  children    Folder[]       @relation("FolderTree")
+  createdById String?
+  createdAt   DateTime       @default(now())
+  versions    AssetVersion[]
+}
+
 model AssetVersion {
   id            String   @id @default(uuid())
-  taskId        String
+  taskId        String?
+  folderId      String?
   fileUrl       String
   versionNumber Int
+  displayName   String?
+  originalName  String?
+  mimeType      String?
   uploadedAt    DateTime @default(now())
-  task          Task     @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  task          Task?    @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  folder        Folder?  @relation(fields: [folderId], references: [id], onDelete: SetNull)
 }
 
 model Employee {

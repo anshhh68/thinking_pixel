@@ -3,6 +3,41 @@ import { useEffect, useState } from "react";
 import { api } from "../../lib/api";
 import { useTheme } from "../../lib/theme";
 
+function StaffTaskList({ tasks, t }) {
+  const byJob = tasks.reduce((acc, tk) => {
+    const key = tk.job?.title || "Unknown Job";
+    if (!acc[key]) acc[key] = [];
+    acc[key].push(tk);
+    return acc;
+  }, {});
+
+  if (tasks.length === 0) return <div style={{ fontSize: 12, color: t.text3, padding: "6px 0" }}>No active tasks.</div>;
+
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+      {Object.entries(byJob).map(([jobTitle, jobTasks]) => (
+        <div key={jobTitle}>
+          <div style={{ fontSize: 11, fontWeight: 700, color: t.text2, marginBottom: 4, display: "flex", alignItems: "center", gap: 6 }}>
+            <span style={{ width: 5, height: 5, borderRadius: "50%", background: t.accent, display: "inline-block" }} />
+            {jobTitle}
+          </div>
+          <div style={{ display: "flex", flexDirection: "column", gap: 3 }}>
+            {jobTasks.map((tk) => (
+              <div key={tk.id} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "5px 10px", background: t.contentBg, borderRadius: 7, gap: 10 }}>
+                <span style={{ fontSize: 12, color: t.text1, flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{tk.description}</span>
+                <div style={{ display: "flex", alignItems: "center", gap: 8, flexShrink: 0 }}>
+                  {tk.dueDate && <span style={{ fontSize: 11, color: t.text3 }}>{new Date(tk.dueDate).toLocaleDateString([], { month: "short", day: "numeric" })}</span>}
+                  <StatusPill status={tk.status} />
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 const STATUS_COLOR = {
   TODO:        { color: "#F59E0B", label: "To-do" },
   IN_PROGRESS: { color: "#7C7FF5", label: "In Progress" },
@@ -96,8 +131,25 @@ export default function TaskPanel({ user }) {
     );
   }
 
-  // HOD / ADMIN — Team Workload table
+  // HOD / ADMIN — Team Workload table with expandable rows
   const rows = data;
+  const [expanded, setExpanded] = useState(null);
+  const [taskCache, setTaskCache] = useState({});
+  const [loadingStaff, setLoadingStaff] = useState({});
+
+  const toggleRow = async (staffName) => {
+    if (expanded === staffName) { setExpanded(null); return; }
+    setExpanded(staffName);
+    if (!taskCache[staffName]) {
+      setLoadingStaff((s) => ({ ...s, [staffName]: true }));
+      try {
+        const tasks = await api(`/jobsheet?staffName=${encodeURIComponent(staffName)}`);
+        setTaskCache((c) => ({ ...c, [staffName]: tasks || [] }));
+      } catch (_) { setTaskCache((c) => ({ ...c, [staffName]: [] })); }
+      setLoadingStaff((s) => ({ ...s, [staffName]: false }));
+    }
+  };
+
   return (
     <div style={cardStyle}>
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
@@ -120,31 +172,47 @@ export default function TaskPanel({ user }) {
             <tbody>
               {rows.map((r) => {
                 const pct = r.total > 0 ? Math.round((r.IN_PROGRESS / r.total) * 100) : 0;
+                const isExpanded = expanded === r.staffName;
                 return (
-                  <tr key={r.staffName}
-                    style={{ borderBottom: `1px solid ${t.border}` }}
-                    onMouseEnter={(e) => e.currentTarget.style.background = t.border + "40"}
-                    onMouseLeave={(e) => e.currentTarget.style.background = "transparent"}>
-                    <td style={{ padding: "9px 12px", fontWeight: 600, color: t.text1 }}>
-                      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                        <div style={{ width: 26, height: 26, borderRadius: "50%", background: t.accent, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 10, fontWeight: 700, color: "#fff" }}>
-                          {r.staffName.split(" ").map((w) => w[0]).join("").slice(0, 2).toUpperCase()}
+                  <>
+                    <tr key={r.staffName}
+                      onClick={() => toggleRow(r.staffName)}
+                      style={{ borderBottom: isExpanded ? "none" : `1px solid ${t.border}`, cursor: "pointer", background: isExpanded ? t.accentSoft : "transparent" }}
+                      onMouseEnter={(e) => { if (!isExpanded) e.currentTarget.style.background = t.border + "40"; }}
+                      onMouseLeave={(e) => { e.currentTarget.style.background = isExpanded ? t.accentSoft : "transparent"; }}>
+                      <td style={{ padding: "9px 12px", fontWeight: 600, color: t.text1 }}>
+                        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                          <span style={{ fontSize: 11, color: t.text3, transition: "transform 0.2s", display: "inline-block", transform: isExpanded ? "rotate(90deg)" : "rotate(0deg)" }}>▶</span>
+                          <div style={{ width: 26, height: 26, borderRadius: "50%", background: t.accent, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 10, fontWeight: 700, color: "#fff" }}>
+                            {r.staffName.split(" ").map((w) => w[0]).join("").slice(0, 2).toUpperCase()}
+                          </div>
+                          {r.staffName}
                         </div>
-                        {r.staffName}
-                      </div>
-                    </td>
-                    <td style={{ padding: "9px 12px", color: "#F59E0B", fontWeight: 600 }}>{r.TODO || 0}</td>
-                    <td style={{ padding: "9px 12px", color: "#7C7FF5", fontWeight: 600 }}>{r.IN_PROGRESS || 0}</td>
-                    <td style={{ padding: "9px 12px", color: "#10B981", fontWeight: 600 }}>{r.DONE || 0}</td>
-                    <td style={{ padding: "9px 12px" }}>
-                      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                        <span style={{ fontWeight: 700, color: t.text1 }}>{r.total}</span>
-                        <div style={{ flex: 1, height: 4, background: t.border, borderRadius: 2, minWidth: 60 }}>
-                          <div style={{ height: "100%", borderRadius: 2, background: "#7C7FF5", width: `${pct}%`, transition: "width 0.3s" }} />
+                      </td>
+                      <td style={{ padding: "9px 12px", color: "#F59E0B", fontWeight: 600 }}>{r.TODO || 0}</td>
+                      <td style={{ padding: "9px 12px", color: "#7C7FF5", fontWeight: 600 }}>{r.IN_PROGRESS || 0}</td>
+                      <td style={{ padding: "9px 12px", color: "#10B981", fontWeight: 600 }}>{r.DONE || 0}</td>
+                      <td style={{ padding: "9px 12px" }}>
+                        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                          <span style={{ fontWeight: 700, color: t.text1 }}>{r.total}</span>
+                          <div style={{ flex: 1, height: 4, background: t.border, borderRadius: 2, minWidth: 60 }}>
+                            <div style={{ height: "100%", borderRadius: 2, background: "#7C7FF5", width: `${pct}%`, transition: "width 0.3s" }} />
+                          </div>
                         </div>
-                      </div>
-                    </td>
-                  </tr>
+                      </td>
+                    </tr>
+                    {isExpanded && (
+                      <tr key={r.staffName + "_expanded"} style={{ borderBottom: `1px solid ${t.border}` }}>
+                        <td colSpan={5} style={{ padding: "10px 16px 14px 56px", background: t.accentSoft }}>
+                          {loadingStaff[r.staffName] ? (
+                            <div style={{ fontSize: 12, color: t.text3 }}>Loading tasks…</div>
+                          ) : (
+                            <StaffTaskList tasks={taskCache[r.staffName] || []} t={t} />
+                          )}
+                        </td>
+                      </tr>
+                    )}
+                  </>
                 );
               })}
             </tbody>
