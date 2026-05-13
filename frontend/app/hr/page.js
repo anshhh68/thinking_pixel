@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { api } from "../../lib/api";
 import { useTheme } from "../../lib/theme";
 import { Badge } from "../../components/ui";
+import { useIsMobile } from "../../lib/useBreakpoint";
 
 const EMPTY_EMPLOYEE = { userId: "", department: "", joinDate: "" };
 const EMPTY_ATTENDANCE = { employeeId: "", date: "", status: "PRESENT" };
@@ -16,6 +17,7 @@ const LEAVE_STATUS_COLOR = {
 
 export default function HrPage() {
   const { t } = useTheme();
+  const isMobile = useIsMobile();
   const [tab, setTab] = useState("employees");
   const [employees, setEmployees] = useState([]);
   const [leaveRequests, setLeaveRequests] = useState([]);
@@ -61,16 +63,16 @@ export default function HrPage() {
   });
 
   return (
-    <div className="anim-fade" style={{ padding: 28, overflowY: "auto", height: "100%", display: "flex", flexDirection: "column", gap: 24 }}>
+    <div className="anim-fade" style={{ padding: isMobile ? 14 : 28, overflowY: "auto", height: "100%", display: "flex", flexDirection: "column", gap: 24 }}>
       <div>
         <div style={{ fontSize: 22, fontWeight: 700, color: t.text1 }}>HR</div>
         <div style={{ fontSize: 13, color: t.text2, marginTop: 2 }}>Team management, attendance, and leave</div>
       </div>
 
       {/* Tabs */}
-      <div style={{ display: "flex", gap: 8 }}>
+      <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
         {["employees", "attendance", "leave"].map((tab_key) => (
-          <button key={tab_key} onClick={() => setTab(tab_key)} style={tabStyle(tab === tab_key)}>
+          <button key={tab_key} onClick={() => setTab(tab_key)} style={{ ...tabStyle(tab === tab_key), fontSize: isMobile ? 12 : 13 }}>
             {tab_key.charAt(0).toUpperCase() + tab_key.slice(1)}
           </button>
         ))}
@@ -89,7 +91,7 @@ export default function HrPage() {
           <form onSubmit={createEmployee}
             style={{ background: t.surfaceBg, border: `1px solid ${t.border}`, borderRadius: 14, padding: 20, display: "flex", flexDirection: "column", gap: 14 }}>
             <div style={{ fontSize: 14, fontWeight: 600, color: t.text1 }}>Add Employee</div>
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 12 }}>
+            <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr 1fr", gap: 12 }}>
               <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
                 <label style={labelStyle}>User ID *</label>
                 <input style={inputStyle} required placeholder="user-id" value={employeeForm.userId}
@@ -115,7 +117,7 @@ export default function HrPage() {
           </form>
 
           {/* Employee list */}
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(240px, 1fr))", gap: 12 }}>
+          <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "repeat(auto-fill, minmax(240px, 1fr))", gap: 12 }}>
             {employees.map((emp) => (
               <div key={emp.id} style={{ background: t.surfaceBg, border: `1px solid ${t.border}`, borderRadius: 12, padding: "16px 18px" }}>
                 <div style={{ fontSize: 14, fontWeight: 600, color: t.text1, marginBottom: 4 }}>{emp.user?.name || emp.userId}</div>
@@ -134,7 +136,7 @@ export default function HrPage() {
         <form onSubmit={markAttendance}
           style={{ background: t.surfaceBg, border: `1px solid ${t.border}`, borderRadius: 14, padding: 24, display: "flex", flexDirection: "column", gap: 16 }}>
           <div style={{ fontSize: 14, fontWeight: 600, color: t.text1 }}>Mark Attendance</div>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 12 }}>
+          <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr 1fr", gap: 12 }}>
             <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
               <label style={labelStyle}>Employee *</label>
               <select style={inputStyle} required value={attendanceForm.employeeId}
@@ -190,7 +192,7 @@ export default function HrPage() {
           <form onSubmit={requestLeave}
             style={{ background: t.surfaceBg, border: `1px solid ${t.border}`, borderRadius: 14, padding: 24, display: "flex", flexDirection: "column", gap: 16 }}>
             <div style={{ fontSize: 14, fontWeight: 600, color: t.text1 }}>Submit Leave Request</div>
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 12 }}>
+            <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr 1fr", gap: 12 }}>
               <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
                 <label style={labelStyle}>Employee *</label>
                 <select style={inputStyle} required value={leaveForm.employeeId}

@@ -3,14 +3,15 @@ import { useEffect, useRef, useState, useCallback } from "react";
 import { api } from "../../lib/api";
 import { useTheme } from "../../lib/theme";
 import { getStoredUser } from "../../lib/auth";
+import { useIsMobile } from "../../lib/useBreakpoint";
 
 const POLL_MS = 2000;
 const TYPING_THROTTLE_MS = 2500;
 
-function Modal({ title, onClose, onSubmit, saving, t, children }) {
+function Modal({ title, onClose, onSubmit, saving, t, isMobile, children }) {
   return (
     <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.5)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 100 }}>
-      <div style={{ background: t.surfaceBg, border: `1px solid ${t.border}`, borderRadius: 16, padding: 28, width: 440, display: "flex", flexDirection: "column", gap: 16 }}>
+      <div style={{ background: t.surfaceBg, border: `1px solid ${t.border}`, borderRadius: 16, padding: 28, width: isMobile ? "90vw" : 440, display: "flex", flexDirection: "column", gap: 16 }}>
         <div style={{ fontSize: 16, fontWeight: 700, color: t.text1 }}>{title}</div>
         <form onSubmit={onSubmit} style={{ display: "flex", flexDirection: "column", gap: 14 }}>
           {children}
@@ -36,6 +37,8 @@ function Avatar({ name, size = 32 }) {
 
 export default function ChatPage() {
   const { t } = useTheme();
+  const isMobile = useIsMobile();
+  const [showChannelList, setShowChannelList] = useState(true);
   const [user, setUser] = useState(null);
   const [channels, setChannels] = useState([]);
   const [clients, setClients] = useState([]);
@@ -232,7 +235,7 @@ export default function ChatPage() {
   return (
     <div style={{ display: "flex", height: "100%", overflow: "hidden" }}>
       {/* Channel sidebar */}
-      <div style={{ width: 230, borderRight: `1px solid ${t.border}`, display: "flex", flexDirection: "column", flexShrink: 0, background: t.sidebarBg }}>
+      <div style={{ width: isMobile ? "100%" : 230, borderRight: `1px solid ${t.border}`, display: isMobile && !showChannelList ? "none" : "flex", flexDirection: "column", flexShrink: 0, background: t.sidebarBg }}>
         <div style={{ padding: "14px 12px 8px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
           <span style={{ fontSize: 11, fontWeight: 700, color: t.text3, textTransform: "uppercase", letterSpacing: "0.06em" }}>Channels</span>
           {isAdmin && (
@@ -247,7 +250,7 @@ export default function ChatPage() {
               style={{ display: "flex", alignItems: "center", gap: 4, borderRadius: 8, marginBottom: 1, background: activeId === ch.id ? t.accentSoft : "none" }}
               onMouseEnter={(e) => { if (activeId !== ch.id) e.currentTarget.style.background = t.border; }}
               onMouseLeave={(e) => { if (activeId !== ch.id) e.currentTarget.style.background = "none"; }}>
-              <button onClick={() => setActiveId(ch.id)}
+              <button onClick={() => { setActiveId(ch.id); if (isMobile) setShowChannelList(false); }}
                 style={{ flex: 1, textAlign: "left", background: "none", border: "none", padding: "7px 10px", cursor: "pointer", color: activeId === ch.id ? t.accent : t.text2, fontSize: 13, fontWeight: activeId === ch.id ? 600 : 400, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                 # {ch.client?.name || ch.name}
               </button>
@@ -266,11 +269,17 @@ export default function ChatPage() {
       </div>
 
       {/* Main chat area */}
-      <div style={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden" }}>
+      <div style={{ flex: 1, display: isMobile && showChannelList ? "none" : "flex", flexDirection: "column", overflow: "hidden" }}>
         {activeChannel ? (
           <>
             {/* Header */}
             <div style={{ padding: "12px 20px", borderBottom: `1px solid ${t.border}`, flexShrink: 0, display: "flex", alignItems: "center", gap: 10 }}>
+              {isMobile && (
+                <button onClick={() => setShowChannelList(true)}
+                  style={{ background: "none", border: "none", color: t.text2, cursor: "pointer", fontSize: 20, lineHeight: 1, padding: "2px 6px 2px 0", flexShrink: 0 }}>
+                  ←
+                </button>
+              )}
               <div>
                 <div style={{ fontSize: 15, fontWeight: 700, color: t.text1 }}>
                   # {activeChannel.client?.name || activeChannel.name}
@@ -303,7 +312,7 @@ export default function ChatPage() {
                     </div>
 
                     {/* Content col */}
-                    <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ flex: 1, minWidth: 0, maxWidth: isMobile ? "85%" : "70%" }}>
                       {!groupWithPrev && !isDeleted && (
                         <div style={{ display: "flex", alignItems: "baseline", gap: 8, marginBottom: 3 }}>
                           <span style={{ fontSize: 13, fontWeight: 700, color: isMe ? t.accent : t.text1 }}>{msg.senderName}</span>
@@ -390,7 +399,7 @@ export default function ChatPage() {
             )}
 
             {/* Composer */}
-            <form onSubmit={sendMessage} style={{ padding: "0 20px 16px", display: "flex", gap: 8, flexShrink: 0, alignItems: "flex-end" }}>
+            <form onSubmit={sendMessage} style={{ padding: isMobile ? "0 12px 12px" : "0 20px 16px", display: "flex", gap: 8, flexShrink: 0, alignItems: "flex-end" }}>
               <input ref={fileInputRef} type="file" accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.zip" style={{ display: "none" }} onChange={handleFileChange} />
               <button type="button" onClick={() => fileInputRef.current?.click()}
                 title="Attach file"
@@ -428,7 +437,7 @@ export default function ChatPage() {
 
       {/* Create channel modal */}
       {showCreate && (
-        <Modal title="New Channel" onClose={() => setShowCreate(false)} onSubmit={createChannel} saving={saving} t={t}>
+        <Modal title="New Channel" onClose={() => setShowCreate(false)} onSubmit={createChannel} saving={saving} t={t} isMobile={isMobile}>
           <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
             <label style={{ fontSize: 11, fontWeight: 600, color: t.text3, textTransform: "uppercase", letterSpacing: "0.05em" }}>Channel Name *</label>
             <input style={{ ...inputStyle, width: "100%" }} required placeholder="e.g. design-team" value={channelForm.name}
@@ -452,7 +461,7 @@ export default function ChatPage() {
 
       {/* Edit channel modal */}
       {editingChannel && (
-        <Modal title="Edit Channel" onClose={() => setEditingChannel(null)} onSubmit={saveChannelEdit} saving={saving} t={t}>
+        <Modal title="Edit Channel" onClose={() => setEditingChannel(null)} onSubmit={saveChannelEdit} saving={saving} t={t} isMobile={isMobile}>
           <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
             <label style={{ fontSize: 11, fontWeight: 600, color: t.text3, textTransform: "uppercase", letterSpacing: "0.05em" }}>Channel Name *</label>
             <input style={{ ...inputStyle, width: "100%" }} required value={channelForm.name}

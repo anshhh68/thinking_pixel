@@ -2,6 +2,7 @@
 import { useEffect, useState } from "react";
 import { api } from "../../lib/api";
 import { useTheme } from "../../lib/theme";
+import { useIsMobile } from "../../lib/useBreakpoint";
 
 const COPY_STATUS_OPTIONS = ["", "Pending", "In Progress", "Done", "On Hold"];
 const PRIORITY_OPTIONS = ["LOW", "MEDIUM", "HIGH", "URGENT"];
@@ -15,6 +16,7 @@ const PRIORITY_COLOR = {
 
 export default function JobSheetPage() {
   const { t } = useTheme();
+  const isMobile = useIsMobile();
   const [tasks, setTasks] = useState([]);
   const [filters, setFilters] = useState({ date: "", staffName: "" });
   const [loading, setLoading] = useState(false);
@@ -64,7 +66,7 @@ export default function JobSheetPage() {
   const COL_HEADERS = ["Date", "Client", "Job Title", "Qty", "Assigned To", "Deadline", "Copy Status", "Priority", "Brief", "Size", "Status"];
 
   return (
-    <div className="anim-fade" style={{ padding: 28, overflowY: "auto", height: "100%", display: "flex", flexDirection: "column", gap: 20 }}>
+    <div className="anim-fade" style={{ padding: isMobile ? 14 : 28, overflowY: "auto", height: "100%", display: "flex", flexDirection: "column", gap: 20 }}>
       {/* Header */}
       <div>
         <div style={{ fontSize: 22, fontWeight: 700, color: t.text1 }}>Job Sheet</div>
@@ -72,7 +74,7 @@ export default function JobSheetPage() {
       </div>
 
       {/* Filters */}
-      <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
+      <div style={{ display: "flex", gap: 12, alignItems: "center", flexWrap: "wrap" }}>
         <input type="date" value={filters.date}
           onChange={(e) => setFilters((f) => ({ ...f, date: e.target.value }))}
           style={{ background: t.surfaceBg, border: `1px solid ${t.border}`, borderRadius: 8, padding: "8px 12px", color: t.text1, fontSize: 13, outline: "none" }} />

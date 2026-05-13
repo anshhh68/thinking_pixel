@@ -5,6 +5,7 @@ import { useTheme } from "../../lib/theme";
 import { getStoredUser } from "../../lib/auth";
 import { StatusBadge, ProgressBar } from "../../components/ui";
 import TaskPanel from "./TaskPanel";
+import { useIsMobile } from "../../lib/useBreakpoint";
 
 const COLS = [
   { key: "OPEN",            label: "Open",          color: "#F59E0B" },
@@ -23,6 +24,7 @@ const computeProgress = (job) => {
 
 export default function DashboardPage() {
   const { t } = useTheme();
+  const isMobile = useIsMobile();
   const [jobs, setJobs] = useState([]);
   const [kpis, setKpis] = useState(null);
   const [user, setUser] = useState(null);
@@ -36,7 +38,7 @@ export default function DashboardPage() {
   const byStatus = (key) => jobs.filter((j) => j.status === key);
 
   return (
-    <div className="anim-fade" style={{ padding: 28, overflowY: "auto", height: "100%", display: "flex", flexDirection: "column", gap: 24 }}>
+    <div className="anim-fade" style={{ padding: isMobile ? 14 : 28, overflowY: "auto", height: "100%", display: "flex", flexDirection: "column", gap: 24 }}>
       {/* Header */}
       <div>
         <div style={{ fontSize: 22, fontWeight: 700, color: t.text1 }}>Dashboard</div>
@@ -46,14 +48,14 @@ export default function DashboardPage() {
       </div>
 
       {/* KPI row */}
-      <div style={{ display: "flex", gap: 14 }}>
+      <div style={{ display: "flex", gap: 14, flexWrap: "wrap" }}>
         {[
           { label: "Total Jobs",   value: kpis?.jobs?.total ?? jobs.length, icon: "◉" },
           { label: "In Progress",  value: kpis?.tasks?.inProgress ?? "—",   icon: "◑" },
           { label: "Team Size",    value: kpis?.hr?.totalEmployees ?? "—",  icon: "◎" },
           { label: "Pending Approval", value: byStatus("CLIENT_REVIEW").length, icon: "◈" },
         ].map((k) => (
-          <div key={k.label} style={{ flex: 1, background: t.surfaceBg, border: `1px solid ${t.border}`, borderRadius: 12, padding: "16px 20px" }}>
+          <div key={k.label} style={{ flex: 1, minWidth: 140, background: t.surfaceBg, border: `1px solid ${t.border}`, borderRadius: 12, padding: "16px 20px" }}>
             <div style={{ fontSize: 12, color: t.text3, marginBottom: 8 }}>{k.icon} {k.label}</div>
             <div style={{ fontSize: 24, fontWeight: 700, color: t.text1 }}>{k.value}</div>
           </div>
@@ -68,7 +70,7 @@ export default function DashboardPage() {
         {COLS.map((col) => {
           const colJobs = byStatus(col.key);
           return (
-            <div key={col.key} style={{ minWidth: 220, flex: 1, display: "flex", flexDirection: "column", gap: 8 }}>
+            <div key={col.key} style={{ minWidth: isMobile ? 160 : 220, flex: 1, display: "flex", flexDirection: "column", gap: 8 }}>
               <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
                 <div style={{ width: 8, height: 8, borderRadius: "50%", background: col.color }} />
                 <span style={{ fontSize: 12, fontWeight: 600, color: t.text2 }}>{col.label}</span>
