@@ -13,7 +13,14 @@ export default function LeadershipPage() {
     api("/leadership/kpis").then(setKpis).catch((e) => setError(e.message));
   }, []);
 
-  if (error) return <div style={{ padding: 28, color: t.red }}>{error}</div>;
+  if (error) return (
+    <div style={{ padding: 28, display: "flex", flexDirection: "column", gap: 12 }}>
+      <div style={{ fontSize: 22, fontWeight: 700, color: t.text1 }}>Leadership</div>
+      <div style={{ background: "rgba(248,113,113,0.1)", border: "1px solid rgba(248,113,113,0.3)", borderRadius: 10, padding: "14px 18px", color: t.red, fontSize: 13 }}>
+        Failed to load KPIs: {error}. Please refresh the page.
+      </div>
+    </div>
+  );
 
   const K = kpis;
   const statCard = (label, value, sub, color) => (

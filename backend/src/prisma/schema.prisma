@@ -26,17 +26,20 @@ model User {
 }
 
 model Client {
-  id           String       @id @default(uuid())
-  name         String
-  contactInfo  String?
-  requirements String?
-  scope        String?
-  timeline     String?
-  priority     String?
-  jobs         Job[]
-  invoices     Invoice[]
-  chatChannel  ChatChannel?
-  createdAt    DateTime     @default(now())
+  id             String       @id @default(uuid())
+  name           String
+  contactInfo    String?
+  requirements   String?
+  scope          String?
+  timeline       String?
+  priority       String?
+  gstin          String?
+  stateCode      String?
+  billingAddress String?
+  jobs           Job[]
+  invoices       Invoice[]
+  chatChannel    ChatChannel?
+  createdAt      DateTime     @default(now())
 }
 
 model Job {
@@ -136,6 +139,16 @@ model Invoice {
   invoiceNumber  String   @unique
   amount         Float
   amountPaid     Float    @default(0)
+  subtotal       Float?
+  gstRate        Float?
+  cgst           Float?
+  sgst           Float?
+  igst           Float?
+  grandTotal     Float?
+  supplyType     String?
+  clientGstin    String?
+  placeOfSupply  String?
+  sacCode        String?
   dueDate        DateTime
   status         String   @default("PENDING")
   remindersSent  Int      @default(0)
@@ -147,17 +160,37 @@ model Invoice {
   client         Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
 }
 
+model OrgSettings {
+  id             String  @id @default(uuid())
+  legalName      String
+  gstin          String
+  stateCode      String
+  address        String?
+  pan            String?
+  bankName       String?
+  bankAccount    String?
+  bankIfsc       String?
+  defaultSacCode String  @default("998361")
+  invoicePrefix  String  @default("TP")
+}
+
 model Notification {
-  id           String   @id @default(uuid())
+  id           String    @id @default(uuid())
   userId       String?
   audienceRole String?
   type         String
-  channel      String   @default("IN_APP")
+  channel      String    @default("IN_APP")
   title        String
   message      String
-  isRead       Boolean  @default(false)
-  createdAt    DateTime @default(now())
-  user         User?    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  link         String?
+  icon         String?
+  isRead       Boolean   @default(false)
+  readAt       DateTime?
+  createdAt    DateTime  @default(now())
+  user         User?     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, isRead, createdAt])
+  @@index([audienceRole, isRead, createdAt])
 }
 
 model AuditLog {

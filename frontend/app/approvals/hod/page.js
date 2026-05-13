@@ -10,7 +10,7 @@ export default function HodApprovalsPage() {
   const [selected, setSelected] = useState(null);
   const [comment, setComment] = useState("");
   const [submitting, setSubmitting] = useState(false);
-  const [msg, setMsg] = useState("");
+  const [msg, setMsg] = useState({ text: "", ok: false });
 
   const load = () => api("/jobs/hod/queue").then(setQueue).catch(() => null);
   useEffect(() => { load(); }, []);
@@ -18,18 +18,18 @@ export default function HodApprovalsPage() {
   const decide = async (status) => {
     if (!selected) return;
     setSubmitting(true);
-    setMsg("");
+    setMsg({ text: "", ok: false });
     try {
       await api(`/jobs/tasks/${selected.id}/hod-decision`, {
         method: "PATCH",
         body: JSON.stringify({ status, comment }),
       });
-      setMsg(status === "APPROVED" ? "Approved successfully." : "Returned for rework.");
+      setMsg({ text: status === "APPROVED" ? "Approved successfully." : "Returned for rework.", ok: true });
       setSelected(null);
       setComment("");
       load();
     } catch (e) {
-      setMsg(e.message);
+      setMsg({ text: e.message || "Something went wrong.", ok: false });
     } finally {
       setSubmitting(false);
     }
@@ -110,9 +110,9 @@ export default function HodApprovalsPage() {
                   style={{ ...inputStyle, resize: "vertical" }} />
               </div>
 
-              {msg && (
-                <div style={{ fontSize: 13, color: msg.includes("successfully") ? t.emerald : t.red, background: msg.includes("successfully") ? "rgba(16,185,129,0.1)" : "rgba(248,113,113,0.1)", borderRadius: 7, padding: "8px 12px" }}>
-                  {msg}
+              {msg.text && (
+                <div style={{ fontSize: 13, color: msg.ok ? t.emerald : t.red, background: msg.ok ? "rgba(16,185,129,0.1)" : "rgba(248,113,113,0.1)", borderRadius: 7, padding: "8px 12px" }}>
+                  {msg.text}
                 </div>
               )}
 
