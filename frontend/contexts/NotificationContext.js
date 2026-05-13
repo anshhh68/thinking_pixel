@@ -3,7 +3,7 @@ import { createContext, useContext, useState, useCallback, useEffect, useRef } f
 import { api } from "../lib/api";
 import { register, unregister } from "../lib/pollScheduler";
 
-const NotificationContext = createContext({ unreadCount: 0, recent: [], refresh: () => {}, markRead: () => {}, markAllRead: () => {} });
+const NotificationContext = createContext({ unreadCount: 0, recent: [], refresh: () => {}, markRead: () => {}, markAllRead: () => {}, setPopupOpen: () => {} });
 
 export function useNotifications() { return useContext(NotificationContext); }
 
