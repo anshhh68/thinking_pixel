@@ -6,6 +6,7 @@ import Navbar from "./Navbar";
 import { getStoredUser } from "../lib/auth";
 import { useTheme } from "../lib/theme";
 import { useIsMobile } from "../lib/useBreakpoint";
+import { NotificationProvider } from "../contexts/NotificationContext";
 
 const PUBLIC = ["/login", "/client-review"];
 
@@ -47,21 +48,23 @@ export default function AppShell({ children }) {
   );
 
   return (
-    <div style={{ display: "flex", height: "100vh", overflow: "hidden", background: t.contentBg }}>
-      {/* Mobile backdrop */}
-      {isMobile && sidebarOpen && (
-        <div onClick={() => setSidebarOpen(false)}
-          style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.5)", zIndex: 150 }} />
-      )}
+    <NotificationProvider>
+      <div style={{ display: "flex", height: "100vh", overflow: "hidden", background: t.contentBg }}>
+        {/* Mobile backdrop */}
+        {isMobile && sidebarOpen && (
+          <div onClick={() => setSidebarOpen(false)}
+            style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.5)", zIndex: 150 }} />
+        )}
 
-      <Sidebar isMobile={isMobile} isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
+        <Sidebar isMobile={isMobile} isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
 
-      <div style={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden", minWidth: 0 }}>
-        <Navbar onMenuClick={() => setSidebarOpen((o) => !o)} isMobile={isMobile} />
-        <main className="anim-fade" style={{ flex: 1, overflow: "hidden", display: "flex", flexDirection: "column" }}>
-          {children}
-        </main>
+        <div style={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden", minWidth: 0 }}>
+          <Navbar onMenuClick={() => setSidebarOpen((o) => !o)} isMobile={isMobile} />
+          <main className="anim-fade" style={{ flex: 1, overflow: "hidden", display: "flex", flexDirection: "column" }}>
+            {children}
+          </main>
+        </div>
       </div>
-    </div>
+    </NotificationProvider>
   );
 }
