@@ -7,6 +7,23 @@ import { getStoredUser } from "../../lib/auth";
 const POLL_MS = 2000;
 const TYPING_THROTTLE_MS = 2500;
 
+function Modal({ title, onClose, onSubmit, saving, t, children }) {
+  return (
+    <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.5)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 100 }}>
+      <div style={{ background: t.surfaceBg, border: `1px solid ${t.border}`, borderRadius: 16, padding: 28, width: 440, display: "flex", flexDirection: "column", gap: 16 }}>
+        <div style={{ fontSize: 16, fontWeight: 700, color: t.text1 }}>{title}</div>
+        <form onSubmit={onSubmit} style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+          {children}
+          <div style={{ display: "flex", gap: 10, justifyContent: "flex-end" }}>
+            <button type="button" onClick={onClose} style={{ background: "none", border: `1px solid ${t.border}`, borderRadius: 8, padding: "8px 18px", color: t.text2, fontSize: 13, cursor: "pointer" }}>Cancel</button>
+            <button type="submit" disabled={saving} style={{ background: t.accent, border: "none", borderRadius: 8, padding: "8px 18px", color: "#fff", fontSize: 13, fontWeight: 600, cursor: saving ? "not-allowed" : "pointer", opacity: saving ? 0.6 : 1 }}>Save</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
+
 function Avatar({ name, size = 32 }) {
   const initials = name ? name.split(" ").map((w) => w[0]).join("").slice(0, 2).toUpperCase() : "?";
   const hue = name ? [...name].reduce((a, c) => a + c.charCodeAt(0), 0) % 360 : 200;
@@ -211,20 +228,6 @@ export default function ChatPage() {
 
   const inputStyle = { background: t.contentBg, border: `1px solid ${t.border}`, borderRadius: 8, padding: "9px 12px", color: t.text1, fontSize: 13, outline: "none", fontFamily: "inherit", boxSizing: "border-box" };
 
-  const Modal = ({ title, onClose, onSubmit, children }) => (
-    <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.5)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 100 }}>
-      <div style={{ background: t.surfaceBg, border: `1px solid ${t.border}`, borderRadius: 16, padding: 28, width: 440, display: "flex", flexDirection: "column", gap: 16 }}>
-        <div style={{ fontSize: 16, fontWeight: 700, color: t.text1 }}>{title}</div>
-        <form onSubmit={onSubmit} style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-          {children}
-          <div style={{ display: "flex", gap: 10, justifyContent: "flex-end" }}>
-            <button type="button" onClick={onClose} style={{ background: "none", border: `1px solid ${t.border}`, borderRadius: 8, padding: "8px 18px", color: t.text2, fontSize: 13, cursor: "pointer" }}>Cancel</button>
-            <button type="submit" disabled={saving} style={{ background: t.accent, border: "none", borderRadius: 8, padding: "8px 18px", color: "#fff", fontSize: 13, fontWeight: 600, cursor: saving ? "not-allowed" : "pointer", opacity: saving ? 0.6 : 1 }}>Save</button>
-          </div>
-        </form>
-      </div>
-    </div>
-  );
 
   return (
     <div style={{ display: "flex", height: "100%", overflow: "hidden" }}>
@@ -425,7 +428,7 @@ export default function ChatPage() {
 
       {/* Create channel modal */}
       {showCreate && (
-        <Modal title="New Channel" onClose={() => setShowCreate(false)} onSubmit={createChannel}>
+        <Modal title="New Channel" onClose={() => setShowCreate(false)} onSubmit={createChannel} saving={saving} t={t}>
           <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
             <label style={{ fontSize: 11, fontWeight: 600, color: t.text3, textTransform: "uppercase", letterSpacing: "0.05em" }}>Channel Name *</label>
             <input style={{ ...inputStyle, width: "100%" }} required placeholder="e.g. design-team" value={channelForm.name}
@@ -449,7 +452,7 @@ export default function ChatPage() {
 
       {/* Edit channel modal */}
       {editingChannel && (
-        <Modal title="Edit Channel" onClose={() => setEditingChannel(null)} onSubmit={saveChannelEdit}>
+        <Modal title="Edit Channel" onClose={() => setEditingChannel(null)} onSubmit={saveChannelEdit} saving={saving} t={t}>
           <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
             <label style={{ fontSize: 11, fontWeight: 600, color: t.text3, textTransform: "uppercase", letterSpacing: "0.05em" }}>Channel Name *</label>
             <input style={{ ...inputStyle, width: "100%" }} required value={channelForm.name}
