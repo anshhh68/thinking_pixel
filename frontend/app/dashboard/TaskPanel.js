@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useState } from "react";
+import { Fragment, useEffect, useState } from "react";
 import { api } from "../../lib/api";
 import { useTheme } from "../../lib/theme";
 
@@ -57,6 +57,9 @@ export default function TaskPanel({ user }) {
   const { t } = useTheme();
   const isStaff = user?.role === "STAFF";
   const [data, setData] = useState(null);
+  const [expanded, setExpanded] = useState(null);
+  const [taskCache, setTaskCache] = useState({});
+  const [loadingStaff, setLoadingStaff] = useState({});
 
   useEffect(() => {
     if (!user) return;
@@ -65,6 +68,19 @@ export default function TaskPanel({ user }) {
       : `/jobsheet/workload`;
     api(url).then(setData).catch(() => null);
   }, [user, isStaff]);
+
+  const toggleRow = async (staffName) => {
+    if (expanded === staffName) { setExpanded(null); return; }
+    setExpanded(staffName);
+    if (!taskCache[staffName]) {
+      setLoadingStaff((s) => ({ ...s, [staffName]: true }));
+      try {
+        const tasks = await api(`/jobsheet?staffName=${encodeURIComponent(staffName)}`);
+        setTaskCache((c) => ({ ...c, [staffName]: tasks || [] }));
+      } catch (_) { setTaskCache((c) => ({ ...c, [staffName]: [] })); }
+      setLoadingStaff((s) => ({ ...s, [staffName]: false }));
+    }
+  };
 
   const cardStyle = {
     background: t.surfaceBg, border: `1px solid ${t.border}`, borderRadius: 14,
@@ -133,22 +149,6 @@ export default function TaskPanel({ user }) {
 
   // HOD / ADMIN — Team Workload table with expandable rows
   const rows = data;
-  const [expanded, setExpanded] = useState(null);
-  const [taskCache, setTaskCache] = useState({});
-  const [loadingStaff, setLoadingStaff] = useState({});
-
-  const toggleRow = async (staffName) => {
-    if (expanded === staffName) { setExpanded(null); return; }
-    setExpanded(staffName);
-    if (!taskCache[staffName]) {
-      setLoadingStaff((s) => ({ ...s, [staffName]: true }));
-      try {
-        const tasks = await api(`/jobsheet?staffName=${encodeURIComponent(staffName)}`);
-        setTaskCache((c) => ({ ...c, [staffName]: tasks || [] }));
-      } catch (_) { setTaskCache((c) => ({ ...c, [staffName]: [] })); }
-      setLoadingStaff((s) => ({ ...s, [staffName]: false }));
-    }
-  };
 
   return (
     <div style={cardStyle}>
@@ -174,8 +174,8 @@ export default function TaskPanel({ user }) {
                 const pct = r.total > 0 ? Math.round((r.IN_PROGRESS / r.total) * 100) : 0;
                 const isExpanded = expanded === r.staffName;
                 return (
-                  <>
-                    <tr key={r.staffName}
+                  <Fragment key={r.staffName}>
+                    <tr
                       onClick={() => toggleRow(r.staffName)}
                       style={{ borderBottom: isExpanded ? "none" : `1px solid ${t.border}`, cursor: "pointer", background: isExpanded ? t.accentSoft : "transparent" }}
                       onMouseEnter={(e) => { if (!isExpanded) e.currentTarget.style.background = t.border + "40"; }}
@@ -202,7 +202,7 @@ export default function TaskPanel({ user }) {
                       </td>
                     </tr>
                     {isExpanded && (
-                      <tr key={r.staffName + "_expanded"} style={{ borderBottom: `1px solid ${t.border}` }}>
+                      <tr style={{ borderBottom: `1px solid ${t.border}` }}>
                         <td colSpan={5} style={{ padding: "10px 16px 14px 56px", background: t.accentSoft }}>
                           {loadingStaff[r.staffName] ? (
                             <div style={{ fontSize: 12, color: t.text3 }}>Loading tasks…</div>
@@ -212,7 +212,7 @@ export default function TaskPanel({ user }) {
                         </td>
                       </tr>
                     )}
-                  </>
+                  </Fragment>
                 );
               })}
             </tbody>
