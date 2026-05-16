@@ -1,6 +1,7 @@
 const express = require("express");
 const { PrismaClient } = require("@prisma/client");
-const { authGuard, requireRole } = require("../middleware/auth");
+const { authGuard, requireCap } = require("../middleware/auth");
+const { hasCap } = require("../config/permissions");
 
 const prisma = new PrismaClient();
 const router = express.Router();
@@ -12,7 +13,7 @@ router.get("/employees", async (_req, res) => {
   res.json(employees);
 });
 
-router.post("/employees", requireRole("ADMIN", "HOD"), async (req, res) => {
+router.post("/employees", requireCap("manageHR"), async (req, res) => {
   const { userId, department, joinDate } = req.body;
   const employee = await prisma.employee.create({
     data: { userId, department, joinDate: joinDate ? new Date(joinDate) : null },
@@ -20,7 +21,7 @@ router.post("/employees", requireRole("ADMIN", "HOD"), async (req, res) => {
   res.status(201).json(employee);
 });
 
-router.post("/attendance", requireRole("ADMIN", "HOD"), async (req, res) => {
+router.post("/attendance", requireCap("manageHR"), async (req, res) => {
   const { employeeId, date, status } = req.body;
   const attendance = await prisma.attendance.create({
     data: { employeeId, date: new Date(date), status },
@@ -29,7 +30,7 @@ router.post("/attendance", requireRole("ADMIN", "HOD"), async (req, res) => {
 });
 
 router.get("/leave-requests", async (req, res) => {
-  const where = req.user.role === "ADMIN" || req.user.role === "HOD"
+  const where = hasCap(req.user.role, "manageHR")
     ? {}
     : { employee: { userId: req.user.id } };
   const leaves = await prisma.leaveRequest.findMany({
@@ -70,7 +71,7 @@ router.post("/leave-requests", async (req, res) => {
   res.status(201).json(leave);
 });
 
-router.patch("/leave-requests/:id/approve", requireRole("ADMIN", "HOD"), async (req, res) => {
+router.patch("/leave-requests/:id/approve", requireCap("manageHR"), async (req, res) => {
   const { id } = req.params;
   const updated = await prisma.leaveRequest.update({
     where: { id },
@@ -87,7 +88,7 @@ router.patch("/leave-requests/:id/approve", requireRole("ADMIN", "HOD"), async (
   res.json(updated);
 });
 
-router.patch("/leave-requests/:id/reject", requireRole("ADMIN", "HOD"), async (req, res) => {
+router.patch("/leave-requests/:id/reject", requireCap("manageHR"), async (req, res) => {
   const { id } = req.params;
   const updated = await prisma.leaveRequest.update({
     where: { id },

@@ -3,6 +3,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { useState, useEffect } from "react";
 import { useTheme } from "../lib/theme";
 import { clearSession, getStoredUser } from "../lib/auth";
+import { ROLE_TABS } from "../lib/permissions";
 
 const ALL_NAV = [
   { id: "dashboard",     href: "/dashboard",    label: "Dashboard",     icon: "▦" },
@@ -19,23 +20,6 @@ const ALL_NAV = [
   { id: "jobsheet",      href: "/jobsheet",       label: "Job Sheet",     icon: "◩" },
 ];
 
-const ROLE_NAV = {
-  ADMIN:                   ["dashboard","clients","jobs","creative","hr","accounts","notifications","leadership","approvals","audit","chat","jobsheet"],
-  HOD:                     ["dashboard","clients","jobs","creative","hr","accounts","notifications","leadership","approvals","chat","jobsheet"],
-  CREATIVE_DIRECTOR:       ["dashboard","clients","jobs","creative","notifications","leadership","approvals","chat"],
-  SENIOR_GRAPHIC_DESIGNER: ["dashboard","jobs","creative","notifications","approvals","chat"],
-  GRAPHIC_DESIGNER:        ["dashboard","jobs","creative","notifications","chat"],
-  MOTION_VIDEO_EDITOR:     ["dashboard","jobs","creative","notifications","chat"],
-  CONTENT_STRATEGIST:      ["dashboard","clients","jobs","creative","notifications","chat"],
-  ACCOUNT_MANAGER:         ["dashboard","clients","jobs","accounts","notifications","leadership","chat"],
-  ACCOUNT_EXECUTIVE:       ["dashboard","clients","jobs","notifications","chat"],
-  ACCOUNTANT_FINANCE:      ["dashboard","accounts","notifications","audit"],
-  COMPLIANCE_OFFICER:      ["dashboard","accounts","audit"],
-  HR_MANAGER:              ["dashboard","hr","notifications","leadership","chat"],
-  STAFF:                   ["dashboard","jobs","creative","notifications","chat"],
-  CLIENT:                  [],
-};
-
 export default function Sidebar({ isMobile, isOpen, onClose }) {
   const { t } = useTheme();
   const pathname = usePathname();
@@ -44,7 +28,7 @@ export default function Sidebar({ isMobile, isOpen, onClose }) {
   const [user, setUser] = useState(null);
   useEffect(() => { setUser(getStoredUser()); }, []);
 
-  const allowed = ROLE_NAV[user?.role] || ROLE_NAV["STAFF"];
+  const allowed = ROLE_TABS[user?.role] || ROLE_TABS["STAFF"];
   const navItems = ALL_NAV.filter((n) => allowed.includes(n.id));
 
   // On mobile: always full width drawer; on desktop: collapsible

@@ -1,6 +1,6 @@
 const express = require("express");
 const { PrismaClient } = require("@prisma/client");
-const { authGuard, requireRole } = require("../middleware/auth");
+const { authGuard, requireCap } = require("../middleware/auth");
 const { getPagination, paginatedResponse } = require("../utils/pagination");
 const { logAudit } = require("../utils/audit");
 
@@ -21,7 +21,7 @@ router.get("/", async (req, res) => {
   return res.json(clients);
 });
 
-router.post("/", requireRole("STAFF", "HOD", "ADMIN"), async (req, res) => {
+router.post("/", requireCap("manageClients"), async (req, res) => {
   const { name, contactInfo, requirements, scope, timeline, priority } = req.body;
   if (!name || !name.trim()) {
     return res.status(400).json({ message: "name is required" });
@@ -43,7 +43,7 @@ router.post("/", requireRole("STAFF", "HOD", "ADMIN"), async (req, res) => {
   res.status(201).json(created);
 });
 
-router.put("/:id", requireRole("STAFF", "HOD", "ADMIN"), async (req, res) => {
+router.put("/:id", requireCap("manageClients"), async (req, res) => {
   const { id } = req.params;
   const updated = await prisma.client.update({
     where: { id },
@@ -60,7 +60,7 @@ router.put("/:id", requireRole("STAFF", "HOD", "ADMIN"), async (req, res) => {
   res.json(updated);
 });
 
-router.delete("/:id", requireRole("ADMIN"), async (req, res) => {
+router.delete("/:id", requireCap("deleteClients"), async (req, res) => {
   const { id } = req.params;
   await prisma.client.delete({ where: { id } });
   await logAudit({

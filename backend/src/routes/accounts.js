@@ -1,6 +1,6 @@
 const express = require("express");
 const { PrismaClient } = require("@prisma/client");
-const { authGuard, requireRole } = require("../middleware/auth");
+const { authGuard, requireCap } = require("../middleware/auth");
 const { getPagination, paginatedResponse } = require("../utils/pagination");
 const { logAudit } = require("../utils/audit");
 
@@ -9,7 +9,7 @@ const router = express.Router();
 
 router.use(authGuard);
 
-router.get("/invoices", requireRole("STAFF", "HOD", "ADMIN"), async (req, res) => {
+router.get("/invoices", requireCap("viewFinance"), async (req, res) => {
   const { page, pageSize, skip, take } = getPagination(req.query);
   const [invoices, total] = await Promise.all([
     prisma.invoice.findMany({
@@ -26,7 +26,7 @@ router.get("/invoices", requireRole("STAFF", "HOD", "ADMIN"), async (req, res) =
   return res.json(invoices);
 });
 
-router.get("/outstanding", requireRole("STAFF", "HOD", "ADMIN"), async (_req, res) => {
+router.get("/outstanding", requireCap("viewFinance"), async (_req, res) => {
   const invoices = await prisma.invoice.findMany({
     where: { status: { in: ["PENDING", "PARTIALLY_PAID", "OVERDUE"] } },
     include: { job: true, client: true },
@@ -44,7 +44,7 @@ router.get("/outstanding", requireRole("STAFF", "HOD", "ADMIN"), async (_req, re
   res.json(enriched);
 });
 
-router.post("/invoices", requireRole("STAFF", "HOD", "ADMIN"), async (req, res) => {
+router.post("/invoices", requireCap("manageInvoices"), async (req, res) => {
   const { jobId, amount, dueDate, notes } = req.body;
   if (!jobId || !amount || !dueDate) {
     return res.status(400).json({ message: "jobId, amount and dueDate are required" });
@@ -85,7 +85,7 @@ router.post("/invoices", requireRole("STAFF", "HOD", "ADMIN"), async (req, res) 
   res.status(201).json(invoice);
 });
 
-router.patch("/invoices/:id/payment", requireRole("STAFF", "HOD", "ADMIN"), async (req, res) => {
+router.patch("/invoices/:id/payment", requireCap("recordPayments"), async (req, res) => {
   const { id } = req.params;
   const { paidAmount } = req.body;
   if (!paidAmount || Number(paidAmount) <= 0) {
@@ -125,7 +125,7 @@ router.patch("/invoices/:id/payment", requireRole("STAFF", "HOD", "ADMIN"), asyn
   res.json(updated);
 });
 
-router.post("/invoices/:id/reminder", requireRole("STAFF", "HOD", "ADMIN"), async (req, res) => {
+router.post("/invoices/:id/reminder", requireCap("manageInvoices"), async (req, res) => {
   const { id } = req.params;
   const invoice = await prisma.invoice.findUnique({ where: { id } });
   if (!invoice) return res.status(404).json({ message: "Invoice not found" });

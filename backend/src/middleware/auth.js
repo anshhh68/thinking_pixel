@@ -1,4 +1,5 @@
 const jwt = require("jsonwebtoken");
+const { hasCap } = require("../config/permissions");
 
 const authGuard = (req, res, next) => {
   const authHeader = req.headers.authorization || "";
@@ -24,7 +25,17 @@ const requireRole = (...roles) => (req, res, next) => {
   return next();
 };
 
+// Capability-based guard — preferred over requireRole. Resolves the user's
+// role to its capability set via config/permissions.js.
+const requireCap = (cap) => (req, res, next) => {
+  if (!req.user || !hasCap(req.user.role, cap)) {
+    return res.status(403).json({ message: "Forbidden" });
+  }
+  return next();
+};
+
 module.exports = {
   authGuard,
   requireRole,
+  requireCap,
 };

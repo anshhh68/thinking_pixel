@@ -1,12 +1,12 @@
 const express = require("express");
 const { PrismaClient } = require("@prisma/client");
-const { authGuard, requireRole } = require("../middleware/auth");
+const { authGuard, requireCap } = require("../middleware/auth");
 
 const prisma = new PrismaClient();
 const router = express.Router();
 
 router.use(authGuard);
-router.use(requireRole("ADMIN", "HOD"));
+router.use(requireCap("viewLeadership"));
 
 router.get("/kpis", async (_req, res) => {
   const [jobs, tasks, invoices, employees, pendingLeaves] = await Promise.all([

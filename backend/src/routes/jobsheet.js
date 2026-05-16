@@ -1,6 +1,7 @@
 const express = require("express");
 const { PrismaClient } = require("@prisma/client");
-const { authGuard, requireRole } = require("../middleware/auth");
+const { authGuard, requireCap } = require("../middleware/auth");
+const { hasCap } = require("../config/permissions");
 
 const prisma = new PrismaClient();
 const router = express.Router();
@@ -8,11 +9,11 @@ const router = express.Router();
 router.use(authGuard);
 
 // GET /api/jobsheet?date=YYYY-MM-DD&staffName=&jobId=
-router.get("/", requireRole("STAFF", "HOD", "ADMIN"), async (req, res) => {
+router.get("/", requireCap("viewJobsheet"), async (req, res) => {
   let { date, staffName, jobId } = req.query;
 
-  // STAFF can only see their own tasks
-  if (req.user.role === "STAFF") staffName = req.user.name;
+  // Only roles that can view team workload may query other people's tasks.
+  if (!hasCap(req.user.role, "viewTeamWorkload")) staffName = req.user.name;
 
   const taskWhere = {};
   if (staffName) taskWhere.assignedTo = { contains: staffName, mode: "insensitive" };
@@ -35,7 +36,7 @@ router.get("/", requireRole("STAFF", "HOD", "ADMIN"), async (req, res) => {
 });
 
 // GET /api/jobsheet/workload — HOD/ADMIN: tasks grouped by staff member
-router.get("/workload", requireRole("HOD", "ADMIN"), async (_req, res) => {
+router.get("/workload", requireCap("viewTeamWorkload"), async (_req, res) => {
   const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
 
   const rows = await prisma.task.groupBy({
@@ -62,7 +63,7 @@ router.get("/workload", requireRole("HOD", "ADMIN"), async (_req, res) => {
 });
 
 // PATCH /api/jobsheet/tasks/:taskId — update job sheet fields
-router.patch("/tasks/:taskId", requireRole("STAFF", "HOD", "ADMIN"), async (req, res) => {
+router.patch("/tasks/:taskId", requireCap("updateTaskStatus"), async (req, res) => {
   const { taskId } = req.params;
   const { quantity, copyStatus, brief, size, status } = req.body;
   const data = {};

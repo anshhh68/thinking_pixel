@@ -1,6 +1,6 @@
 const express = require("express");
 const { PrismaClient } = require("@prisma/client");
-const { authGuard, requireRole } = require("../middleware/auth");
+const { authGuard, requireRole, requireCap } = require("../middleware/auth");
 
 const prisma = new PrismaClient();
 const router = express.Router();
@@ -17,7 +17,7 @@ router.get("/channels", async (_req, res) => {
   res.json(channels);
 });
 
-router.post("/channels", requireRole("HOD", "ADMIN"), async (req, res) => {
+router.post("/channels", requireCap("createChatChannel"), async (req, res) => {
   const { name, description, clientId } = req.body;
   if (!name?.trim()) return res.status(400).json({ message: "name is required" });
 
@@ -31,7 +31,7 @@ router.post("/channels", requireRole("HOD", "ADMIN"), async (req, res) => {
   res.status(201).json(channel);
 });
 
-router.patch("/channels/:channelId", requireRole("HOD", "ADMIN"), async (req, res) => {
+router.patch("/channels/:channelId", requireCap("createChatChannel"), async (req, res) => {
   const { name, description } = req.body;
   const data = {};
   if (name?.trim()) data.name = name.trim();

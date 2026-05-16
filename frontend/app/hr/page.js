@@ -4,8 +4,9 @@ import { api } from "../../lib/api";
 import { useTheme } from "../../lib/theme";
 import { Badge } from "../../components/ui";
 import { useIsMobile } from "../../lib/useBreakpoint";
+import { DEPARTMENTS } from "../../lib/permissions";
 
-const EMPTY_EMPLOYEE = { userId: "", department: "", joinDate: "" };
+const EMPTY_EMPLOYEE = { userId: "", role: "", department: "", joinDate: "" };
 const EMPTY_ATTENDANCE = { employeeId: "", date: "", status: "PRESENT" };
 const EMPTY_LEAVE = { employeeId: "", startDate: "", endDate: "", reason: "" };
 
@@ -91,11 +92,28 @@ export default function HrPage() {
           <form onSubmit={createEmployee}
             style={{ background: t.surfaceBg, border: `1px solid ${t.border}`, borderRadius: 14, padding: 20, display: "flex", flexDirection: "column", gap: 14 }}>
             <div style={{ fontSize: 14, fontWeight: 600, color: t.text1 }}>Add Employee</div>
-            <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr 1fr", gap: 12 }}>
+            <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr 1fr 1fr", gap: 12 }}>
               <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
                 <label style={labelStyle}>User ID *</label>
                 <input style={inputStyle} required placeholder="user-id" value={employeeForm.userId}
                   onChange={(e) => setEmployeeForm({ ...employeeForm, userId: e.target.value })} />
+              </div>
+              <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                <label style={labelStyle}>Role</label>
+                <select style={inputStyle} value={employeeForm.role}
+                  onChange={(e) => setEmployeeForm({ ...employeeForm, role: e.target.value })}>
+                  <option value="">Select Role</option>
+                  {Object.entries(DEPARTMENTS).map(([dept, roles]) => (
+                    <optgroup key={dept} label={dept}>
+                      {roles.map(r => <option key={r} value={r}>{r.replace(/_/g, " ")}</option>)}
+                    </optgroup>
+                  ))}
+                  <optgroup label="Legacy / System">
+                    <option value="STAFF">STAFF</option>
+                    <option value="HOD">HOD</option>
+                    <option value="ADMIN">ADMIN</option>
+                  </optgroup>
+                </select>
               </div>
               <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
                 <label style={labelStyle}>Department</label>

@@ -7,14 +7,23 @@ import { getStoredUser } from "../lib/auth";
 import { useTheme } from "../lib/theme";
 import { useIsMobile } from "../lib/useBreakpoint";
 import { NotificationProvider } from "../contexts/NotificationContext";
+import { ROLE_TABS } from "../lib/permissions";
 
 const PUBLIC = ["/login", "/client-review"];
 
-const ROLE_PATHS = {
-  ADMIN:  ["/dashboard", "/clients", "/jobs", "/creative", "/hr", "/accounts", "/leadership", "/notifications", "/audit", "/approvals", "/chat", "/jobsheet"],
-  HOD:    ["/dashboard", "/jobs", "/creative", "/notifications", "/approvals", "/chat", "/jobsheet"],
-  STAFF:  ["/dashboard", "/jobs", "/creative", "/notifications", "/chat"],
-  CLIENT: [],
+const TAB_PATHS = {
+  dashboard:     "/dashboard",
+  clients:       "/clients",
+  jobs:          "/jobs",
+  creative:      "/creative",
+  hr:            "/hr",
+  accounts:      "/accounts",
+  notifications: "/notifications",
+  leadership:    "/leadership",
+  approvals:     "/approvals",
+  audit:         "/audit",
+  chat:          "/chat",
+  jobsheet:      "/jobsheet",
 };
 
 export default function AppShell({ children }) {
@@ -33,8 +42,9 @@ export default function AppShell({ children }) {
     const user = getStoredUser();
     if (!isPublic && !user) { router.replace("/login"); return; }
     if (user && !isPublic) {
-      const allowed = ROLE_PATHS[user.role] || [];
-      const canAccess = allowed.some((p) => pathname.startsWith(p));
+      const tabs = ROLE_TABS[user.role] || [];
+      const allowedPaths = tabs.map((id) => TAB_PATHS[id]).filter(Boolean);
+      const canAccess = allowedPaths.some((p) => pathname.startsWith(p));
       if (!canAccess) { router.replace("/dashboard"); return; }
     }
     setReady(true);

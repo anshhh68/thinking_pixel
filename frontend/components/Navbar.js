@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { useTheme } from "../lib/theme";
 import { getStoredUser } from "../lib/auth";
 import { useNotifications } from "../contexts/NotificationContext";
+import { hasCap } from "../lib/permissions";
 
 function timeAgo(dateStr) {
   const diff = Date.now() - new Date(dateStr).getTime();
@@ -137,11 +138,11 @@ export default function Navbar({ onMenuClick, isMobile }) {
   const initials = user ? user.name.split(" ").map((w) => w[0]).join("").slice(0, 2).toUpperCase() : "—";
 
   const CREATE_ITEMS = [
-    { label: "New Client",    href: "/clients",  icon: "◈", roles: ["ADMIN","HOD"] },
-    { label: "New Job",       href: "/jobs",     icon: "◉", roles: ["ADMIN","HOD","STAFF"] },
-    { label: "Leave Request", href: "/hr",       icon: "◎", roles: ["ADMIN","HOD","STAFF"] },
-    { label: "New Invoice",   href: "/accounts", icon: "◆", roles: ["ADMIN","HOD"] },
-  ].filter((item) => !user?.role || item.roles.includes(user.role));
+    { label: "New Client",    href: "/clients",  icon: "◈", cap: "manageClients" },
+    { label: "New Job",       href: "/jobs",     icon: "◉", cap: "manageJobs" },
+    { label: "Leave Request", href: "/hr",       icon: "◎", cap: "updateTaskStatus" },
+    { label: "New Invoice",   href: "/accounts", icon: "◆", cap: "manageInvoices" },
+  ].filter((item) => !user?.role || hasCap(user.role, item.cap));
 
   return (
     <div style={{ height: 60, display: "flex", alignItems: "center", gap: isMobile ? 8 : 12, padding: isMobile ? "0 12px" : "0 28px", background: t.navBg, backdropFilter: "blur(12px)", borderBottom: `1px solid ${t.border}`, position: "sticky", top: 0, zIndex: 100, flexShrink: 0 }}>

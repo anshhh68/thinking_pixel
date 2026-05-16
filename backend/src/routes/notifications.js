@@ -1,6 +1,6 @@
 const express = require("express");
 const { PrismaClient } = require("@prisma/client");
-const { authGuard, requireRole } = require("../middleware/auth");
+const { authGuard, requireCap } = require("../middleware/auth");
 const { getPagination, paginatedResponse } = require("../utils/pagination");
 const { logAudit } = require("../utils/audit");
 
@@ -80,7 +80,7 @@ router.patch("/read-all", async (req, res) => {
 });
 
 // POST /notifications/broadcast
-router.post("/broadcast", requireRole("ADMIN", "HOD"), async (req, res) => {
+router.post("/broadcast", requireCap("viewLeadership"), async (req, res) => {
   const { audienceRole, title, message, type, link } = req.body;
   if (!audienceRole || !title || !message) {
     return res.status(400).json({ message: "audienceRole, title, message are required" });

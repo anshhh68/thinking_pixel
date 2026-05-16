@@ -12,6 +12,24 @@ enum Role {
   STAFF
   HOD
   ADMIN
+  // Account & Finance
+  FINANCE_MANAGER
+  // Account Management
+  ACCOUNT_DIRECTOR
+  ACCOUNT_MANAGER
+  ACCOUNT_EXECUTIVE
+  // Content & Strategy
+  STRATEGY_HEAD
+  CONTENT_STRATEGIST
+  // Creative
+  CREATIVE_DIRECTOR
+  ART_DIRECTOR
+  SENIOR_GRAPHIC_DESIGNER
+  GRAPHIC_DESIGNER
+  JUNIOR_GRAPHIC_DESIGNER
+  ILLUSTRATOR
+  // Motion Graphics / Video Editing
+  VIDEO_EDITOR
 }
 
 model User {

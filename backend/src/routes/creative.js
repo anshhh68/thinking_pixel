@@ -1,7 +1,8 @@
 const express = require("express");
 const multer = require("multer");
 const { PrismaClient } = require("@prisma/client");
-const { authGuard, requireRole } = require("../middleware/auth");
+const { authGuard, requireRole, requireCap } = require("../middleware/auth");
+const { hasCap } = require("../config/permissions");
 
 const prisma = new PrismaClient();
 const router = express.Router();
@@ -12,14 +13,14 @@ router.use(authGuard);
 
 // GET /creative/drive — Client → Job → Task → Versions tree (role-filtered)
 router.get("/drive", async (req, res) => {
-  const isStaff = req.user.role === "STAFF";
+  const restricted = !hasCap(req.user.role, "approveTasks");
 
   const clients = await prisma.client.findMany({
     include: {
       jobs: {
         include: {
           tasks: {
-            where: isStaff ? { assignedTo: req.user.name } : undefined,
+            where: restricted ? { assignedTo: req.user.name } : undefined,
             include: { versions: { orderBy: { versionNumber: "asc" } } },
             orderBy: { createdAt: "asc" },
           },
@@ -34,10 +35,10 @@ router.get("/drive", async (req, res) => {
     .map((c) => ({
       ...c,
       jobs: c.jobs
-        .map((j) => ({ ...j, tasks: j.tasks.filter((t) => t.versions.length > 0 || !isStaff) }))
-        .filter((j) => !isStaff || j.tasks.length > 0),
+        .map((j) => ({ ...j, tasks: j.tasks.filter((t) => t.versions.length > 0 || !restricted) }))
+        .filter((j) => !restricted || j.tasks.length > 0),
     }))
-    .filter((c) => !isStaff || c.jobs.length > 0);
+    .filter((c) => !restricted || c.jobs.length > 0);
 
   res.json(result);
 });
@@ -80,7 +81,7 @@ router.get("/folders/:id", async (req, res) => {
 });
 
 // POST /creative/folders — create folder (HOD/ADMIN)
-router.post("/folders", requireRole("HOD", "ADMIN"), async (req, res) => {
+router.post("/folders", requireCap("manageFolders"), async (req, res) => {
   const { name, parentId } = req.body;
   if (!name?.trim()) return res.status(400).json({ message: "name is required" });
   const folder = await prisma.folder.create({
@@ -90,7 +91,7 @@ router.post("/folders", requireRole("HOD", "ADMIN"), async (req, res) => {
 });
 
 // PATCH /creative/folders/:id — rename or move (HOD/ADMIN)
-router.patch("/folders/:id", requireRole("HOD", "ADMIN"), async (req, res) => {
+router.patch("/folders/:id", requireCap("manageFolders"), async (req, res) => {
   const { name, parentId } = req.body;
   const data = {};
   if (name?.trim()) data.name = name.trim();
@@ -108,7 +109,7 @@ router.delete("/folders/:id", requireRole("ADMIN"), async (req, res) => {
 // POST /creative/folders/:id/upload — upload file directly into a folder
 router.post(
   "/folders/:id/upload",
-  requireRole("STAFF", "HOD", "ADMIN"),
+  requireCap("uploadCreative"),
   upload.single("file"),
   async (req, res) => {
     const { id: folderId } = req.params;
@@ -137,7 +138,7 @@ router.post(
 // POST /creative/tasks/:taskId/upload
 router.post(
   "/tasks/:taskId/upload",
-  requireRole("STAFF", "HOD", "ADMIN"),
+  requireCap("uploadCreative"),
   upload.single("file"),
   async (req, res) => {
     const { taskId } = req.params;
@@ -164,7 +165,7 @@ router.post(
 );
 
 // PATCH /creative/versions/:id — rename + optional move to folder
-router.patch("/versions/:id", requireRole("HOD", "ADMIN"), async (req, res) => {
+router.patch("/versions/:id", requireCap("manageFolders"), async (req, res) => {
   const { displayName, folderId } = req.body;
   if (!displayName?.trim() && folderId === undefined) return res.status(400).json({ message: "displayName or folderId is required" });
   const data = {};
@@ -175,7 +176,7 @@ router.patch("/versions/:id", requireRole("HOD", "ADMIN"), async (req, res) => {
 });
 
 // DELETE /creative/versions/:id
-router.delete("/versions/:id", requireRole("HOD", "ADMIN"), async (req, res) => {
+router.delete("/versions/:id", requireCap("manageFolders"), async (req, res) => {
   await prisma.assetVersion.delete({ where: { id: req.params.id } });
   res.json({ ok: true });
 });

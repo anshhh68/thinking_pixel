@@ -1,13 +1,13 @@
 const express = require("express");
 const { PrismaClient } = require("@prisma/client");
-const { authGuard, requireRole } = require("../middleware/auth");
+const { authGuard, requireCap } = require("../middleware/auth");
 const { getPagination, paginatedResponse } = require("../utils/pagination");
 
 const prisma = new PrismaClient();
 const router = express.Router();
 
 router.use(authGuard);
-router.use(requireRole("ADMIN", "HOD"));
+router.use(requireCap("viewAudit"));
 
 router.get("/", async (req, res) => {
   const { page, pageSize, skip, take } = getPagination(req.query);

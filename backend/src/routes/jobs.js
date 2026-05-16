@@ -1,7 +1,7 @@
 const express = require("express");
 const crypto = require("crypto");
 const { PrismaClient } = require("@prisma/client");
-const { authGuard, requireRole } = require("../middleware/auth");
+const { authGuard, requireRole, requireCap } = require("../middleware/auth");
 const { getPagination, paginatedResponse } = require("../utils/pagination");
 const { logAudit } = require("../utils/audit");
 
@@ -80,7 +80,7 @@ router.get("/", async (req, res) => {
   return res.json(jobs);
 });
 
-router.get("/hod/queue", requireRole("HOD", "ADMIN"), async (_req, res) => {
+router.get("/hod/queue", requireCap("approveTasks"), async (_req, res) => {
   const queue = await prisma.task.findMany({
     where: { readyForReview: true, hodReviewStatus: "PENDING" },
     include: {
@@ -92,7 +92,7 @@ router.get("/hod/queue", requireRole("HOD", "ADMIN"), async (_req, res) => {
   res.json(queue);
 });
 
-router.post("/", requireRole("STAFF", "HOD", "ADMIN"), async (req, res) => {
+router.post("/", requireCap("manageJobs"), async (req, res) => {
   const { clientId, title, owner, dueDate, priority, status } = req.body;
   if (!clientId || !title) {
     return res.status(400).json({ message: "clientId and title are required" });
@@ -118,7 +118,7 @@ router.post("/", requireRole("STAFF", "HOD", "ADMIN"), async (req, res) => {
   res.status(201).json(job);
 });
 
-router.post("/:jobId/tasks", requireRole("STAFF", "HOD", "ADMIN"), async (req, res) => {
+router.post("/:jobId/tasks", requireCap("manageJobs"), async (req, res) => {
   const { jobId } = req.params;
   const { assignedTo, description, status, dueDate } = req.body;
   if (!description || !description.trim()) {
@@ -144,14 +144,14 @@ router.post("/:jobId/tasks", requireRole("STAFF", "HOD", "ADMIN"), async (req, r
   res.status(201).json(task);
 });
 
-router.patch("/tasks/:taskId/status", requireRole("STAFF", "HOD", "ADMIN"), async (req, res) => {
+router.patch("/tasks/:taskId/status", requireCap("updateTaskStatus"), async (req, res) => {
   const { taskId } = req.params;
   const { status } = req.body;
   const updated = await prisma.task.update({ where: { id: taskId }, data: { status } });
   res.json(updated);
 });
 
-router.patch("/tasks/:taskId/ready", requireRole("HOD", "ADMIN"), async (req, res) => {
+router.patch("/tasks/:taskId/ready", requireCap("updateTaskStatus"), async (req, res) => {
   const { taskId } = req.params;
   const updated = await prisma.task.update({
     where: { id: taskId },
@@ -175,7 +175,7 @@ router.patch("/tasks/:taskId/ready", requireRole("HOD", "ADMIN"), async (req, re
   res.json(updated);
 });
 
-router.patch("/tasks/:taskId/hod-decision", requireRole("HOD", "ADMIN"), async (req, res) => {
+router.patch("/tasks/:taskId/hod-decision", requireCap("approveTasks"), async (req, res) => {
   const { taskId } = req.params;
   const { status, comment } = req.body;
   if (!["APPROVED", "REJECTED"].includes(status)) {
@@ -210,7 +210,7 @@ router.patch("/tasks/:taskId/hod-decision", requireRole("HOD", "ADMIN"), async (
   res.json(updated);
 });
 
-router.post("/:jobId/client-review-link", requireRole("HOD", "ADMIN"), async (req, res) => {
+router.post("/:jobId/client-review-link", requireCap("manageJobs"), async (req, res) => {
   const { jobId } = req.params;
   const token = crypto.randomUUID();
   const updated = await prisma.job.update({
@@ -241,7 +241,7 @@ router.post("/:jobId/client-review-link", requireRole("HOD", "ADMIN"), async (re
   });
 });
 
-router.patch("/:jobId", requireRole("STAFF", "HOD", "ADMIN"), async (req, res) => {
+router.patch("/:jobId", requireCap("manageJobs"), async (req, res) => {
   const { jobId } = req.params;
   const { title, owner, dueDate, priority, status } = req.body;
   const updated = await prisma.job.update({
