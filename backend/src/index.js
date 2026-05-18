@@ -42,6 +42,7 @@ const inviteRoutes = require("./routes/invites");
 const { startReminderScheduler } = require("./jobs/reminderScheduler");
 
 const app = express();
+app.set("trust proxy", 1); // Trust first proxy (Render, Heroku, etc.) for rate limiting
 const PORT = process.env.PORT || 4000;
 
 // ─── Security Headers ──────────────────────────────────────────────────────

@@ -110,7 +110,9 @@ export default function HrPage() {
                 <label style={labelStyle}>User *</label>
                 <select style={inputStyle} required value={employeeForm.userId}
                   onChange={(e) => setEmployeeForm({ ...employeeForm, userId: e.target.value })}>
-                  <option value="">Select a user</option>
+                  <option value="" disabled={availableUsers.length === 0}>
+                    {availableUsers.length === 0 ? "No users available (invite first)" : "Select a user"}
+                  </option>
                   {availableUsers.map((u) => (
                     <option key={u.id} value={u.id}>{u.name} ({u.email})</option>
                   ))}
