@@ -1,7 +1,7 @@
 const cron = require("node-cron");
-const { PrismaClient } = require("@prisma/client");
+const prisma = require("../lib/prisma");
 
-const prisma = new PrismaClient();
+
 
 function startReminderScheduler() {
   // Every day at 09:00 server time.

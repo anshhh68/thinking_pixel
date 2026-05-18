@@ -1,7 +1,14 @@
-const { PrismaClient } = require("@prisma/client");
+const prisma = require("../lib/prisma");
 const bcrypt = require("bcryptjs");
 
-const prisma = new PrismaClient();
+// ── Safety: never run the demo seed in production ───────────────────────────
+if (process.env.NODE_ENV === "production") {
+  console.error("✋ ABORT: Dev seed must not run in production.");
+  console.error("   Use `npm run seed:prod` for production seeding.");
+  process.exit(1);
+}
+
+console.warn("⚠  Running DEVELOPMENT seed — creates demo users with weak passwords.");
 
 async function upsertUser({ name, email, password, role }) {
   const passwordHash = await bcrypt.hash(password, 10);

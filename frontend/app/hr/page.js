@@ -34,21 +34,26 @@ export default function HrPage() {
   const [inviteForm, setInviteForm] = useState(EMPTY_INVITE);
   const [saving, setSaving] = useState(false);
   const [msg, setMsg] = useState("");
+  const [msgType, setMsgType] = useState("success"); // success | error
   const [copiedId, setCopiedId] = useState(null);
+  const [availableUsers, setAvailableUsers] = useState([]);
 
   const load = () => Promise.all([
     api("/hr/employees").then(setEmployees).catch(() => null),
     api("/hr/leave-requests").then(setLeaveRequests).catch(() => null),
     api("/hr/attendance").then(setAttendance).catch(() => null),
-    ...(isAdmin ? [api("/invites").then(setInvites).catch(() => null)] : []),
+    ...(isAdmin ? [
+      api("/invites").then(setInvites).catch(() => null),
+      api("/hr/users-without-employee").then(setAvailableUsers).catch(() => null),
+    ] : []),
   ]);
 
   useEffect(() => { load(); }, []);
 
   const withMsg = async (fn, successMsg) => {
-    setSaving(true); setMsg("");
-    try { await fn(); setMsg(successMsg); load(); }
-    catch (e) { setMsg(e.message); }
+    setSaving(true); setMsg(""); setMsgType("success");
+    try { await fn(); setMsg(successMsg); setMsgType("success"); load(); }
+    catch (e) { setMsg(e.message); setMsgType("error"); }
     finally { setSaving(false); }
   };
 
@@ -88,7 +93,7 @@ export default function HrPage() {
       </div>
 
       {msg && (
-        <div style={{ fontSize: 13, color: t.emerald, background: "rgba(16,185,129,0.1)", borderRadius: 7, padding: "8px 12px" }}>
+        <div style={{ fontSize: 13, color: msgType === "error" ? t.red || "#F87171" : t.emerald, background: msgType === "error" ? "rgba(248,113,113,0.1)" : "rgba(16,185,129,0.1)", borderRadius: 7, padding: "8px 12px" }}>
           {msg}
         </div>
       )}
@@ -102,9 +107,14 @@ export default function HrPage() {
             <div style={{ fontSize: 14, fontWeight: 600, color: t.text1 }}>Add Employee</div>
             <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr 1fr 1fr", gap: 12 }}>
               <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-                <label style={labelStyle}>User ID *</label>
-                <input style={inputStyle} required placeholder="user-id" value={employeeForm.userId}
-                  onChange={(e) => setEmployeeForm({ ...employeeForm, userId: e.target.value })} />
+                <label style={labelStyle}>User *</label>
+                <select style={inputStyle} required value={employeeForm.userId}
+                  onChange={(e) => setEmployeeForm({ ...employeeForm, userId: e.target.value })}>
+                  <option value="">Select a user</option>
+                  {availableUsers.map((u) => (
+                    <option key={u.id} value={u.id}>{u.name} ({u.email})</option>
+                  ))}
+                </select>
               </div>
               <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
                 <label style={labelStyle}>Role</label>

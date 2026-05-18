@@ -4,13 +4,6 @@ import { useRouter } from "next/navigation";
 import { useTheme } from "../../lib/theme";
 import { api } from "../../lib/api";
 
-const DEMOS = [
-  { label: "Admin",  email: "admin@thinkingpixel.com",  password: "Admin@123" },
-  { label: "HOD",    email: "hod@thinkingpixel.com",    password: "Hod@123" },
-  { label: "Staff",  email: "staff@thinkingpixel.com",  password: "Staff@123" },
-  { label: "Client", email: "client@thinkingpixel.com", password: "Client@123" },
-];
-
 export default function LoginPage() {
   const { t, isDark, toggle } = useTheme();
   const router = useRouter();
@@ -84,17 +77,6 @@ export default function LoginPage() {
           Ask your admin for an invite link to create your account.
         </div>
 
-        <div style={{ marginTop: 24 }}>
-          <div style={{ fontSize: 11, color: t.text3, textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 10 }}>Quick fill — demo accounts</div>
-          <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-            {DEMOS.map((d) => (
-              <button key={d.label} onClick={() => setForm({ email: d.email, password: d.password })}
-                style={{ background: t.surfaceBg, border: `1px solid ${t.border}`, borderRadius: 7, padding: "6px 12px", fontSize: 12, color: t.text2, cursor: "pointer" }}>
-                {d.label}
-              </button>
-            ))}
-          </div>
-        </div>
       </div>
     </div>
   );

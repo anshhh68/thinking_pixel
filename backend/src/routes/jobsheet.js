@@ -1,9 +1,9 @@
 const express = require("express");
-const { PrismaClient } = require("@prisma/client");
+const prisma = require("../lib/prisma");
 const { authGuard, requireCap } = require("../middleware/auth");
 const { hasCap } = require("../config/permissions");
 
-const prisma = new PrismaClient();
+
 const router = express.Router();
 
 router.use(authGuard);

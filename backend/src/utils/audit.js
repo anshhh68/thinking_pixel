@@ -1,6 +1,6 @@
-const { PrismaClient } = require("@prisma/client");
+const prisma = require("../lib/prisma");
 
-const prisma = new PrismaClient();
+
 
 async function logAudit({ actorId, actorRole, action, entityType, entityId, payload }) {
   try {

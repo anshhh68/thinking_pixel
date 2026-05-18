@@ -1,10 +1,10 @@
 const express = require("express");
-const { PrismaClient } = require("@prisma/client");
+const prisma = require("../lib/prisma");
 const { authGuard, requireCap } = require("../middleware/auth");
 const { getPagination, paginatedResponse } = require("../utils/pagination");
 const { logAudit } = require("../utils/audit");
 
-const prisma = new PrismaClient();
+
 const router = express.Router();
 
 router.use(authGuard);

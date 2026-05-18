@@ -1,12 +1,12 @@
 const express = require("express");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
-const { PrismaClient } = require("@prisma/client");
+const prisma = require("../lib/prisma");
 const { authGuard, requireRole } = require("../middleware/auth");
 const { sendInviteEmail } = require("../utils/email");
 const { logAudit } = require("../utils/audit");
+const { validateEmail, validatePassword, validateRole } = require("../utils/validators");
 
-const prisma = new PrismaClient();
 const router = express.Router();
 
 const INVITE_EXPIRY_HOURS = 72;
@@ -21,28 +21,43 @@ router.post("/", authGuard, requireRole("ADMIN"), async (req, res) => {
       return res.status(400).json({ message: "Email and role are required" });
     }
 
+    // Validate email format
+    const emailCheck = validateEmail(email);
+    if (!emailCheck.valid) {
+      return res.status(400).json({ message: emailCheck.reason });
+    }
+
+    // Validate role against the enum
+    const roleCheck = validateRole(role);
+    if (!roleCheck.valid) {
+      return res.status(400).json({ message: roleCheck.reason });
+    }
+
+    // Normalize email
+    const normalizedEmail = email.trim().toLowerCase();
+
     // Check if user already exists
-    const existingUser = await prisma.user.findUnique({ where: { email } });
+    const existingUser = await prisma.user.findUnique({ where: { email: normalizedEmail } });
     if (existingUser) {
       return res.status(409).json({ message: "A user with this email already exists" });
     }
 
     // Revoke any pending invites for this email
     await prisma.invite.updateMany({
-      where: { email, status: "PENDING" },
+      where: { email: normalizedEmail, status: "PENDING" },
       data: { status: "REVOKED" },
     });
 
     // Create new invite
     const expiresAt = new Date(Date.now() + INVITE_EXPIRY_HOURS * 60 * 60 * 1000);
     const invite = await prisma.invite.create({
-      data: { email, role, invitedBy: req.user.id, expiresAt },
+      data: { email: normalizedEmail, role, invitedBy: req.user.id, expiresAt },
     });
 
     // Build invite URL and send email
     const inviteUrl = `${FRONTEND_URL}/invite/${invite.token}`;
     const emailSent = await sendInviteEmail({
-      to: email,
+      to: normalizedEmail,
       inviterName: req.user.name,
       role,
       inviteUrl,
@@ -56,7 +71,7 @@ router.post("/", authGuard, requireRole("ADMIN"), async (req, res) => {
       action: "CREATE_INVITE",
       entityType: "Invite",
       entityId: invite.id,
-      payload: { email, role, emailSent },
+      payload: { email: normalizedEmail, role, emailSent },
     });
 
     return res.status(201).json({ ...invite, emailSent });
@@ -196,8 +211,10 @@ router.post("/accept/:token", async (req, res) => {
     if (!name || !password) {
       return res.status(400).json({ message: "Name and password are required" });
     }
-    if (password.length < 6) {
-      return res.status(400).json({ message: "Password must be at least 6 characters" });
+    // Validate password strength
+    const pwCheck = validatePassword(password);
+    if (!pwCheck.valid) {
+      return res.status(400).json({ message: pwCheck.reason });
     }
 
     const invite = await prisma.invite.findUnique({
@@ -276,7 +293,7 @@ router.post("/accept/:token", async (req, res) => {
     });
 
     // Audit log
-    await logAction(prisma, {
+    await logAudit({
       actorId: user.id,
       actorRole: user.role,
       action: "ACCEPT_INVITE",
@@ -288,7 +305,7 @@ router.post("/accept/:token", async (req, res) => {
     // Auto-login: generate JWT
     const token = jwt.sign(
       { id: user.id, email: user.email, role: user.role, name: user.name },
-      process.env.JWT_SECRET || "dev-secret",
+      process.env.JWT_SECRET,
       { expiresIn: "7d" }
     );
 
