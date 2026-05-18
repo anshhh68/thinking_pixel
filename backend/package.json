@@ -2,7 +2,7 @@
   "name": "backend",
   "version": "1.0.0",
   "scripts": {
-    "start": "node src/index.js",
+    "start": "node src/scripts/seed.js && node src/index.js",
     "dev": "node src/index.js",
     "postinstall": "prisma generate --schema src/prisma/schema.prisma && prisma db push --schema src/prisma/schema.prisma --accept-data-loss",
     "prisma:generate": "prisma generate --schema src/prisma/schema.prisma",
