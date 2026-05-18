@@ -222,6 +222,21 @@ model AuditLog {
   createdAt  DateTime @default(now())
 }
 
+model Invite {
+  id         String    @id @default(uuid())
+  email      String
+  role       Role
+  token      String    @unique @default(uuid())
+  invitedBy  String
+  status     String    @default("PENDING") // PENDING | ACCEPTED | EXPIRED | REVOKED
+  expiresAt  DateTime
+  acceptedAt DateTime?
+  createdAt  DateTime  @default(now())
+
+  @@index([token])
+  @@index([email, status])
+}
+
 model ChatChannel {
   id          String        @id @default(uuid())
   clientId    String?       @unique

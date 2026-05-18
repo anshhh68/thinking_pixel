@@ -5,10 +5,12 @@ import { useTheme } from "../../lib/theme";
 import { Badge } from "../../components/ui";
 import { useIsMobile } from "../../lib/useBreakpoint";
 import { DEPARTMENTS } from "../../lib/permissions";
+import { getStoredUser } from "../../lib/auth";
 
 const EMPTY_EMPLOYEE = { userId: "", role: "", department: "", joinDate: "" };
 const EMPTY_ATTENDANCE = { employeeId: "", date: "", status: "PRESENT" };
 const EMPTY_LEAVE = { employeeId: "", startDate: "", endDate: "", reason: "" };
+const EMPTY_INVITE = { email: "", role: "" };
 
 const LEAVE_STATUS_COLOR = {
   PENDING:  { color: "#F59E0B", soft: "rgba(245,158,11,0.13)" },
@@ -19,20 +21,26 @@ const LEAVE_STATUS_COLOR = {
 export default function HrPage() {
   const { t } = useTheme();
   const isMobile = useIsMobile();
+  const currentUser = typeof window !== "undefined" ? getStoredUser() : null;
+  const isAdmin = currentUser?.role === "ADMIN";
   const [tab, setTab] = useState("employees");
   const [employees, setEmployees] = useState([]);
   const [leaveRequests, setLeaveRequests] = useState([]);
   const [attendance, setAttendance] = useState([]);
+  const [invites, setInvites] = useState([]);
   const [employeeForm, setEmployeeForm] = useState(EMPTY_EMPLOYEE);
   const [attendanceForm, setAttendanceForm] = useState(EMPTY_ATTENDANCE);
   const [leaveForm, setLeaveForm] = useState(EMPTY_LEAVE);
+  const [inviteForm, setInviteForm] = useState(EMPTY_INVITE);
   const [saving, setSaving] = useState(false);
   const [msg, setMsg] = useState("");
+  const [copiedId, setCopiedId] = useState(null);
 
   const load = () => Promise.all([
     api("/hr/employees").then(setEmployees).catch(() => null),
     api("/hr/leave-requests").then(setLeaveRequests).catch(() => null),
     api("/hr/attendance").then(setAttendance).catch(() => null),
+    ...(isAdmin ? [api("/invites").then(setInvites).catch(() => null)] : []),
   ]);
 
   useEffect(() => { load(); }, []);
@@ -72,7 +80,7 @@ export default function HrPage() {
 
       {/* Tabs */}
       <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-        {["employees", "attendance", "leave"].map((tab_key) => (
+        {["employees", "attendance", "leave", ...(isAdmin ? ["invites"] : [])].map((tab_key) => (
           <button key={tab_key} onClick={() => setTab(tab_key)} style={{ ...tabStyle(tab === tab_key), fontSize: isMobile ? 12 : 13 }}>
             {tab_key.charAt(0).toUpperCase() + tab_key.slice(1)}
           </button>
@@ -281,6 +289,109 @@ export default function HrPage() {
               );
             })}
             {leaveRequests.length === 0 && <div style={{ color: t.text3, fontSize: 13 }}>No leave requests.</div>}
+          </div>
+        </div>
+      )}
+
+      {/* Invites tab (ADMIN only) */}
+      {tab === "invites" && isAdmin && (
+        <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
+          {/* Send invite form */}
+          <form onSubmit={(e) => {
+            e.preventDefault();
+            withMsg(async () => {
+              await api("/invites", { method: "POST", body: JSON.stringify(inviteForm) });
+              setInviteForm(EMPTY_INVITE);
+              api("/invites").then(setInvites).catch(() => null);
+            }, "Invite sent successfully!");
+          }}
+            style={{ background: t.surfaceBg, border: `1px solid ${t.border}`, borderRadius: 14, padding: 20, display: "flex", flexDirection: "column", gap: 14 }}>
+            <div style={{ fontSize: 14, fontWeight: 600, color: t.text1 }}>Send Invite</div>
+            <div style={{ fontSize: 12, color: t.text2, marginTop: -8 }}>Invite a new team member via email. They will receive a link to create their account.</div>
+            <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: 12 }}>
+              <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                <label style={labelStyle}>Email *</label>
+                <input style={inputStyle} type="email" required placeholder="colleague@example.com" value={inviteForm.email}
+                  onChange={(e) => setInviteForm({ ...inviteForm, email: e.target.value })} />
+              </div>
+              <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                <label style={labelStyle}>Role *</label>
+                <select style={inputStyle} required value={inviteForm.role}
+                  onChange={(e) => setInviteForm({ ...inviteForm, role: e.target.value })}>
+                  <option value="">Select Role</option>
+                  {Object.entries(DEPARTMENTS).map(([dept, roles]) => (
+                    <optgroup key={dept} label={dept}>
+                      {roles.map(r => <option key={r} value={r}>{r.replace(/_/g, " ")}</option>)}
+                    </optgroup>
+                  ))}
+                  <optgroup label="Legacy / System">
+                    <option value="STAFF">STAFF</option>
+                    <option value="HOD">HOD</option>
+                    <option value="ADMIN">ADMIN</option>
+                  </optgroup>
+                </select>
+              </div>
+            </div>
+            <div>
+              <button type="submit" disabled={saving}
+                style={{ background: t.accent, border: "none", borderRadius: 8, padding: "9px 20px", color: "#fff", fontSize: 13, fontWeight: 600, cursor: saving ? "not-allowed" : "pointer", opacity: saving ? 0.6 : 1 }}>
+                Send Invite
+              </button>
+            </div>
+          </form>
+
+          {/* Invite list */}
+          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+            <div style={{ fontSize: 14, fontWeight: 600, color: t.text1 }}>All Invites</div>
+            {invites.length === 0 && <div style={{ color: t.text3, fontSize: 13 }}>No invites sent yet.</div>}
+            {invites.map((inv) => {
+              const isExpired = inv.isExpired || (inv.status === "PENDING" && new Date(inv.expiresAt) < new Date());
+              const status = isExpired ? "EXPIRED" : inv.status;
+              const statusColors = {
+                PENDING: { color: "#F59E0B", soft: "rgba(245,158,11,0.13)" },
+                ACCEPTED: { color: "#10B981", soft: "rgba(16,185,129,0.13)" },
+                EXPIRED: { color: "#6B7280", soft: "rgba(107,114,128,0.13)" },
+                REVOKED: { color: "#F87171", soft: "rgba(248,113,113,0.13)" },
+              };
+              const sc = statusColors[status] || statusColors.PENDING;
+              const frontendUrl = typeof window !== "undefined" ? window.location.origin : "";
+              const inviteLink = `${frontendUrl}/invite/${inv.token}`;
+
+              return (
+                <div key={inv.id} style={{ background: t.surfaceBg, border: `1px solid ${t.border}`, borderRadius: 10, padding: "14px 18px" }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 8 }}>
+                    <div>
+                      <div style={{ fontSize: 13, fontWeight: 600, color: t.text1 }}>{inv.email}</div>
+                      <div style={{ fontSize: 12, color: t.accent, marginTop: 2 }}>{(inv.role || "").replace(/_/g, " ")}</div>
+                      <div style={{ fontSize: 11, color: t.text3, marginTop: 4 }}>
+                        Invited by {inv.inviterName} · {new Date(inv.createdAt).toLocaleDateString()}
+                      </div>
+                    </div>
+                    <Badge label={status} color={sc.color} soft={sc.soft} />
+                  </div>
+                  {status === "PENDING" && !isExpired && (
+                    <div style={{ display: "flex", gap: 8, marginTop: 8 }}>
+                      <button onClick={async () => {
+                        await navigator.clipboard.writeText(inviteLink);
+                        setCopiedId(inv.id);
+                        setTimeout(() => setCopiedId(null), 2000);
+                      }}
+                        style={{ background: "none", border: `1px solid ${t.border}`, borderRadius: 7, padding: "5px 12px", fontSize: 12, color: copiedId === inv.id ? t.emerald : t.text2, cursor: "pointer" }}>
+                        {copiedId === inv.id ? "Copied!" : "Copy Link"}
+                      </button>
+                      <button onClick={() => withMsg(() => api(`/invites/${inv.id}/resend`, { method: "POST" }).then(() => load()), "Invite resent!")}
+                        style={{ background: "none", border: `1px solid ${t.border}`, borderRadius: 7, padding: "5px 12px", fontSize: 12, color: t.text2, cursor: "pointer" }}>
+                        Resend
+                      </button>
+                      <button onClick={() => withMsg(() => api(`/invites/${inv.id}`, { method: "DELETE" }).then(() => load()), "Invite revoked.")}
+                        style={{ background: "none", border: `1px solid ${t.red}`, borderRadius: 7, padding: "5px 12px", fontSize: 12, color: t.red, cursor: "pointer" }}>
+                        Revoke
+                      </button>
+                    </div>
+                  )}
+                </div>
+              );
+            })}
           </div>
         </div>
       )}

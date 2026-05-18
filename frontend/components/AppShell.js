@@ -9,7 +9,7 @@ import { useIsMobile } from "../lib/useBreakpoint";
 import { NotificationProvider } from "../contexts/NotificationContext";
 import { ROLE_TABS } from "../lib/permissions";
 
-const PUBLIC = ["/login", "/client-review"];
+const PUBLIC = ["/login", "/client-review", "/invite"];
 
 const TAB_PATHS = {
   dashboard:     "/dashboard",

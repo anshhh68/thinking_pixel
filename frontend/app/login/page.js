@@ -74,6 +74,16 @@ export default function LoginPage() {
           </button>
         </form>
 
+        {/* Invite notice */}
+        <div style={{
+          marginTop: 20, textAlign: "center", fontSize: 13, color: t.text3,
+          background: t.surfaceBg, border: `1px solid ${t.border}`, borderRadius: 10,
+          padding: "12px 16px", lineHeight: 1.5,
+        }}>
+          <span style={{ color: t.text2 }}>New here?</span>{" "}
+          Ask your admin for an invite link to create your account.
+        </div>
+
         <div style={{ marginTop: 24 }}>
           <div style={{ fontSize: 11, color: t.text3, textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 10 }}>Quick fill — demo accounts</div>
           <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
